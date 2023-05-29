@@ -10,6 +10,7 @@ from scipy import stats
 from scipy.special import factorial, comb
 from scipy.stats import nbinom
 from Bio import Phylo
+from .gillespie_variable_paras import *
 
 from .gene_expr import *
 import os
@@ -444,206 +445,7 @@ class Cell:
         self.td = td
 
 
-class Reaction:
-    '''
-    Cell division/differentiation type
-    
-    Args:
-        rate:
-            reaction rate function
-        num_lefts:
-            Cell numbers before reaction
-        num_right:
-            Cell numbers after reaction
-        index:
-            Reaction index
-    '''
-    def __init__(self, rate:callable=None, num_lefts:list=None, num_rights:list=None, index:int=None):
-        self.rate = rate
-        assert len(num_lefts) == len(num_rights)
-        self.num_lefts = np.array(num_lefts)
-        self.num_rights = np.array(num_rights)
-        self.num_diff = self.num_rights - self.num_lefts
-        self.index = index
-        if 2 * sum(num_lefts) == sum(num_rights):
-            self.type = "proliferate"
-        else:
-            self.type = "differentiation"
 
-    def combine(self, n, s):
-        return np.prod(comb(n, s))
-
-    def propensity(self, n, t):
-        return self.rate(t) * self.combine(n, self.num_lefts)
-
-
-class Gillespie:
-    '''
-    Gillespie simulation
-    
-    Args:
-        num_elements: 
-            Cell type number
-        inits: 
-            Initial cell number
-        max_cell_num: 
-            Maximum cell number
-    '''
-    def __init__(
-        self,
-        num_elements:int,
-        inits:list=None,
-        max_cell_num:int=20000,
-    ):
-
-        assert num_elements > 0
-        self.num_elements = num_elements
-        self.reactions = []
-        if inits is None:
-            self.n = [np.ones(self.num_elements)]
-        else:
-            self.n = [np.array(inits)]
-        self.anc_cells = []
-        self.curr_cells = defaultdict(list)
-        self.curr_cells[0] = [
-            Cell(gen=0, parent=-1, cid=i, tb=0) for i in range(int(self.n[0][0]))
-        ]
-
-        self.generation_time = [0]
-        self.max_cell_num = max_cell_num
-
-    def add_reaction(self, rate:callable=None, num_lefts:list=None, num_rights:list=None, index:int=None):
-        '''
-        Add reactions to simulation
-        
-        Args:
-            rate:
-                reaction rate function
-            num_lefts:
-                Cell numbers before reaction
-            num_right:
-                Cell numbers after reaction
-            index:
-                Reaction index
-        '''
-        assert len(num_lefts) == self.num_elements
-        assert len(num_rights) == self.num_elements
-        self.reactions.append(Reaction(rate, num_lefts, num_rights, index))
-
-    def evolute(self, steps:int):
-        '''
-        Run simulation
-        
-        Args:
-            steps:
-                How many steps to evolute before step
-        '''
-        self.t = [0]
-        self.log = []
-        cell_num_per_gen = {0: self.n[0][0]}
-        cell_id_per_gen = {0: self.n[0][0]}
-
-        def proliferate(i):
-            node = np.random.choice(self.curr_cells[i])
-            l1, l2 = deepcopy(node), deepcopy(node)
-            l1.parent, l2.parent = node.cid, node.cid
-            l1.gen += 1
-            l2.gen += 1
-            l1.tb, l2.tb = self.t[-1], self.t[-1]
-            try:
-                index = cell_id_per_gen[l1.gen] + 1
-            except:
-                index = 0
-                cell_id_per_gen.update({l1.gen: -1})
-                cell_num_per_gen.update({l1.gen: -1})
-
-            l1.cid, l2.cid = index, index + 1
-            self.curr_cells[i].append(l1)
-            self.curr_cells[i].append(l2)
-
-            cell_num_per_gen[l1.gen] += 2
-            cell_id_per_gen[l1.gen] += 2
-            cell_num_per_gen[l1.gen - 1] -= 1
-
-            self.curr_cells[i].remove(node)
-            node.td = self.t[-1]
-            self.anc_cells.append(node)
-
-        def differentiate(i, j):
-
-            node = np.random.choice(self.curr_cells[i])
-            diffcell = deepcopy(node)
-            self.curr_cells[i].remove(node)
-
-            node.td = self.t[-1]
-            diffcell.tb = self.t[-1]
-            self.anc_cells.append(node)
-            diffcell.gen += 1
-
-            diffcell.state = j
-
-            try:
-                index = cell_id_per_gen[diffcell.gen] + 1
-            except:
-                index = 0
-                cell_id_per_gen.update({diffcell.gen: -1})
-                cell_num_per_gen.update({diffcell.gen: -1})
-
-            diffcell.cid = index
-            cell_id_per_gen[diffcell.gen] += 1
-            cell_num_per_gen[diffcell.gen] += 1
-            cell_num_per_gen[diffcell.gen - 1] -= 1
-            diffcell.parent = node.cid
-            self.curr_cells[diffcell.state].append(diffcell)
-
-        class SwitchCase(object):
-            def case_to_func(self, reaction):
-                self.reaction = reaction
-                method = getattr(self, reaction.type + "1")
-                return method
-
-            def proliferate1(self):
-                proliferate(list(self.reaction.num_lefts).index(1))
-
-            def differentiation1(self):
-                differentiate(
-                    list(self.reaction.num_lefts).index(1),
-                    list(self.reaction.num_rights).index(1),
-                )
-
-        cls = SwitchCase()
-
-        with tqdm(total=self.max_cell_num) as pbar:
-
-            for _ in range(steps):
-                all_cell_num = sum(cell_num_per_gen.values())
-                pbar.update(all_cell_num - pbar.n)
-                if all_cell_num > self.max_cell_num:
-                    print("\n maximum cell number reached")
-                    break
-
-                avg_generation = np.dot(
-                    list(cell_num_per_gen.keys()), list(cell_num_per_gen.values())
-                ) / sum(cell_num_per_gen.values())
-
-                self.generation_time.append(avg_generation)
-                A = np.array(
-                    [
-                        rec.propensity(self.n[-1], avg_generation)
-                        for rec in self.reactions
-                    ]
-                )
-
-                A0 = A.sum()
-                A /= A0
-                t0 = -np.log(np.random.random()) / A0
-                self.t.append(self.t[-1] + t0)
-                react = np.random.choice(self.reactions, p=A)
-
-                self.log.append(react.index)
-                self.n.append(self.n[-1] + react.num_diff)
-
-                cls.case_to_func(react)()
 
                 
 def DNAmutation(tree, mut_rate=0.1):
@@ -655,7 +457,7 @@ def DNAmutation(tree, mut_rate=0.1):
             if j.name in mutations:
                 mut = deepcopy(mutations[j.name])
             else:
-                for _ in range(np.random.poisson(mu)):
+                for _ in range(np.random.poisson(mut_rate)):
                     mut.append(global_mutid+1)
                     global_mutid += 1
                 mutations[j.name] = deepcopy(mut)
@@ -667,7 +469,7 @@ def DNAmutation(tree, mut_rate=0.1):
         seq[mutations[i.name]]=1
         mut_table.append(seq)
         cell_names.append(i.name)
-    return pd.DataFrame(np.array(mut_table), index=cell_nemes)
+    return pd.DataFrame(np.array(mut_table), index=cell_names)
 
 def initialize_mtmut(nmts=1000, mut_rate=0.2, len_mtdna=16569, birth_rate=1, death_rate=0.1):
     sys = Gillespie(1, [1], max_cell_num=nmts-1, mt_mut_rate=mut_rate)
@@ -706,12 +508,12 @@ def mtmutation(tree, mut_rate=1.6e-3, **params):
     len_mtDNA = params.pop('len_mtDNA', 16569)
     birth_rate = params.pop('birth_rate', 1)
     death_rate = params.pop('death_rate', 0.1)
-    for i in range(10):
-        try:
-            init_cell_muts = initialize_mtmut(nmts, init_mut_rate, len_mtDNA, birth_rate, death_rate)
-            break
-        except:
-            continue
+    # for i in range(10):
+    #     try:
+    init_cell_muts = initialize_mtmut(nmts, init_mut_rate, len_mtDNA, birth_rate, death_rate)
+        #     break
+        # except:
+        #     continue
         
 
     global_mutid = max([max(i.union({0})) for i in init_cell_muts])
