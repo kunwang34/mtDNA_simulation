@@ -478,18 +478,20 @@ def initialize_mtmut(nmts=1000, mut_rate=0.2, len_mtdna=16569, birth_rate=1, dea
     sys.evolute(10000)
     return [i.mt_muts for i in sys.curr_cells[0]]
 
-def cell_division_with_mt(mt_muts, global_mutid, mut_rate):
+def cell_division_with_mt(mt_muts, global_mutid, mut_rate, mt_copynumber=2):
     new_mts = []
     for mt in mt_muts:
-        new_mts.append(deepcopy(mt))
-        for new_mut in range(np.random.poisson(mut_rate)):
-            new_mts[-1].add(global_mutid+1)
-            global_mutid += 1
-        new_mts.append(deepcopy(mt))
-        for new_mut in range(np.random.poisson(mut_rate)):
-            new_mts[-1].add(global_mutid+1)
-            global_mutid += 1 
-    division = np.random.binomial(1,0.5,len(mt_muts)*2).astype(bool)
+        for _ in range(int(mt_copynumber)):
+            new_mts.append(deepcopy(mt))
+            for new_mut in range(np.random.poisson(mut_rate)):
+                new_mts[-1].add(global_mutid+1)
+                global_mutid += 1
+        if np.random.rand() < mt_copynumber - int(mt_copynumber):
+            new_mts.append(deepcopy(mt))
+            for new_mut in range(np.random.poisson(mut_rate)):
+                new_mts[-1].add(global_mutid+1)
+                global_mutid += 1 
+    division = np.random.binomial(1, 0.5, len(new_mts)).astype(bool)
     cell1 = np.array(new_mts)[division]
     cell2 = np.array(new_mts)[~division]
     return list(cell1), list(cell2), global_mutid
@@ -497,17 +499,26 @@ def cell_division_with_mt(mt_muts, global_mutid, mut_rate):
 def mtmutation(tree, mut_rate=1.6e-3, **params):
     '''
     Args:
-        nmts (default:1000): number of mts
-        init_mut_rate (default:0.2): initial mutation rate
-        len_mtDNA (default:16569): length of mtDNA seq (unable)
-        birth_rate (default:1): birth_rate of initial mts
-        death_rate (default:0.1): death_rate of initial mts
+        nmts (default:1000): 
+            number of mts
+        init_mut_rate (default:0.2): 
+            initial mutation rate
+        len_mtDNA (default:16569): 
+            length of mtDNA seq (unable)
+        birth_rate (default:1): 
+            birth_rate of initial mts
+        death_rate (default:0.1): 
+            death_rate of initial mts
+        mt_copynumber (default:2):
+            copy number of mtDNA
+        
     '''
     nmts = params.pop('nmts', 1000)
     init_mut_rate = params.pop('init_mut_rate', 0.2)
     len_mtDNA = params.pop('len_mtDNA', 16569)
     birth_rate = params.pop('birth_rate', 1)
     death_rate = params.pop('death_rate', 0.1)
+    mt_copynumber = params.pop('mt_copynumber', 2)
     # for i in range(10):
     #     try:
     init_cell_muts = initialize_mtmut(nmts, init_mut_rate, len_mtDNA, birth_rate, death_rate)
@@ -521,7 +532,7 @@ def mtmutation(tree, mut_rate=1.6e-3, **params):
     
     for i in tqdm(Phylo.BaseTree._preorder_traverse(tree.root, lambda elem: elem.clades), total=len(tree.get_terminals())+len(tree.get_nonterminals())):
         if not i.is_terminal():
-            new_mts = cell_division_with_mt(mt_mutations[i.name], global_mutid, mut_rate)
+            new_mts = cell_division_with_mt(mt_mutations[i.name], global_mutid, mut_rate, mt_copynumber)
             global_mutid = new_mts[2]
             for ind, j in enumerate(i.clades):
                 mt_mutations[j.name] = new_mts[ind]
