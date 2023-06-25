@@ -1,0 +1,10 @@
+#!/bin/bash
+#SBATCH -J mt_tree
+#SBATCH -p all
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH --mem=2 
+#SBATCH -t 0
+#SBATCH -o %x-%j.log 
+#SBATCH -e %x-%j.err 
+python sim50.py
