@@ -11,7 +11,7 @@ from scipy.special import factorial, comb
 from scipy.stats import nbinom
 from Bio import Phylo
 from .gillespie_variable_paras import *
-
+import warnings
 from .gene_expr import *
 import os
 
@@ -445,7 +445,33 @@ class Cell:
         self.td = td
 
 
+def dna_seq_mutate(seq, mut_prob):
+    seq = np.array(seq).astype(int)
+    mut_prob_arr = np.ones(len(seq))*mut_prob
+    is_mut = np.random.rand(len(seq)) < mut_prob_arr
+    seq[is_mut] = 1
+    return seq.astype(int)
+        
+def dna_seq_simulation(tree, mut_prob=0.01, lseq=1e3):
+    '''
+    mut_prob:
+        mutation probability per base per division
+    lseq:
+        length of DNA seq
+    '''
+    lseq = int(lseq)
+    seqs = {tree.root.name:np.zeros(lseq)}
 
+    for i in tqdm(Phylo.BaseTree._preorder_traverse(tree.root, lambda elem: elem.clades), total=len(tree.get_terminals())+len(tree.get_nonterminals())):
+        if not i.is_terminal():
+            for j in i.clades:
+                seqs[j.name] = dna_seq_mutate(seqs[i.name], mut_prob)
+    obs = []
+    ind = []
+    for i in tree.get_terminals():
+        ind.append(i.name)
+        obs.append(seqs[i.name])
+    return pd.DataFrame(obs, index=ind)
 
                 
 def DNAmutation(tree, mut_rate=0.1):
