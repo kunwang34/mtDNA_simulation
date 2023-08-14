@@ -19,14 +19,14 @@ num_elements = 5
 system = Gillespie(
     num_elements,
     inits=[1, 0, 0, 0, 0],
-    max_cell_num=8000
+    max_cell_num=20000
 )
 
-p0 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 17))))
-p1 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 17))))
-p2 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 17))))
-p3 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 18))))
-p4 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 19))))
+p0 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 18))))
+p1 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 18))))
+p2 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 18))))
+p3 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 19))))
+p4 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 20))))
 d0 = lambda t: 1 - p0(t)
 d1 = lambda t: 1 - p1(t)
 d2 = lambda t: 1 - p2(t)
@@ -69,7 +69,7 @@ sim_utils.wirte_lineage_info(
     f'{data_path}/{tree_file_name}', system.anc_cells, curr_cells, system.t[-1]
 )
 try:
-    reconstruct(f'{data_path}/tree_origin_linear_{filename}.csv', output=f'{data_path}/linear_tree_gt_{filename}.nwk', num=5000, is_balance=False)
+    reconstruct(f'{data_path}/tree_origin_linear_{filename}.csv', output=f'{data_path}/linear_tree_gt_{filename}.nwk', num=5000, is_balance=True)
 except:
     os.system(f'rm {data_path}/{tree_file_name}')
     os.system(f'rm {data_path}/{cell_num_file_name}')
@@ -90,19 +90,20 @@ sd = scData(
 
 ge, base_expr = sim_base_expr(sd.phylo_tree,
                                  cell_states,
-                                 Ngene=2000,
+                                 Ngene=4000,
                                  r_variant_gene=0.4,
                                  diff_map={0:[0],1:[0],2:[1],3:[2],4:[3]},
                                  forward_map={},
                                  mu0_loc=0,
                                  mu0_scale=1,
                                  drift_loc=0,
-                                 drift_scale=0.3,
+                                 drift_scale=0.1,
                                 )
 
-sd.count = get_count_from_base_expr(add_lineage_noise(sd.phylo_tree, base_expr), alpha=0.1)
+sd.count = get_count_from_base_expr(add_lineage_noise(sd.phylo_tree, base_expr), alpha=0.5)
 sd.count.to_csv(f'{data_path}/count_{filename}.csv')
-
+sd.dimensionality_reduction(method='tsne', perplexity=30)
+sd.Xdr.to_csv(f'{data_path}/tsne_{filename}.csv')
 
 seqs = DNAmutation(phylo_tree, mut_rate=1.5)
 seqs = seqs.astype(int)

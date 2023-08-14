@@ -1,5 +1,7 @@
 *.csv
 results/
+results1/
+*.err
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
