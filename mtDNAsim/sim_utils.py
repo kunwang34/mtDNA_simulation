@@ -14,6 +14,7 @@ from .gillespie_variable_paras import *
 import warnings
 from .gene_expr import *
 import os
+import re
 
 def get_annotation(file):
     '''
@@ -96,7 +97,7 @@ def sim_base_expr(
     Nstate = len(diff_map)
     terminals_depths = tree.depths()
     for i in tree.get_terminals():
-        depth[int(cell_states.loc[i.name])].append(int(terminals_depths[i]))
+        depth[int(cell_states.loc[i.name].iloc[0])].append(int(terminals_depths[i]))
 
     start_time = {}
     end_time = {}
@@ -148,7 +149,7 @@ def sim_base_expr(
 
     ge.generate_genes(mu0_loc, mu0_scale, drift_loc, drift_scale)
     for cell in tree.get_terminals():
-        cellstate = int(cell_states.loc[cell.name])
+        cellstate = int(cell_states.loc[cell.name].iloc[0])
         tmp = ge.expr(
             cellstate,
             int(terminals_depths[cell])
@@ -545,6 +546,9 @@ def mtmutation(tree, mut_rate=1.6e-3, **params):
     birth_rate = params.pop('birth_rate', 1)
     death_rate = params.pop('death_rate', 0.1)
     mt_copynumber = params.pop('mt_copynumber', 2)
+    if not callable(mt_copynumber):
+        mt_copynumber = lambda x: mt_copynumber
+    
     # for i in range(10):
     #     try:
     init_cell_muts = initialize_mtmut(nmts, init_mut_rate, len_mtDNA, birth_rate, death_rate)
@@ -558,7 +562,7 @@ def mtmutation(tree, mut_rate=1.6e-3, **params):
     
     for i in tqdm(Phylo.BaseTree._preorder_traverse(tree.root, lambda elem: elem.clades), total=len(tree.get_terminals())+len(tree.get_nonterminals())):
         if not i.is_terminal():
-            new_mts = cell_division_with_mt(mt_mutations[i.name], global_mutid, mut_rate, mt_copynumber)
+            new_mts = cell_division_with_mt(mt_mutations[i.name], global_mutid, mut_rate, mt_copynumber(int(re.findall('(?<=<)[0-9]+', i.name)[0])))
             global_mutid = new_mts[2]
             for ind, j in enumerate(i.clades):
                 mt_mutations[j.name] = new_mts[ind]
