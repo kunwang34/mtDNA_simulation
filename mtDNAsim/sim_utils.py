@@ -102,8 +102,8 @@ def sim_base_expr(
     start_time = {}
     end_time = {}
     for i in range(Nstate):
-        start_time[i] = int(np.quantile(depth[i], 0.2))
-        end_time[i] = int(np.quantile(depth[i], 0.8))
+        start_time[i] = int(np.quantile(depth[i], 0.05))
+        end_time[i] = int(np.quantile(depth[i], 0.95))
 
     t0 = start_time[0]
     for i in start_time:
