@@ -20,36 +20,36 @@ if data_path is None:
 num_elements = 5
 
 while True:
+    num_elements = 5
     system = Gillespie(
         num_elements,
         inits=[1, 0, 0, 0, 0],
         max_cell_num=20000
     )
 
-    p0 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 18))))
+    p0 = lambda t: (1 - 1 / (1 + np.exp(-0.5 * (t - 19))))
     p1 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 18))))
-    p2 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 18))))
-    p3 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 19))))
-    p4 = lambda t: (1 - 1 / (1 + np.exp(-0.6 * (t - 20))))
-    d0 = lambda t: 1 - p0(t)
-    d1 = lambda t: 1 - p1(t)
-    d2 = lambda t: 1 - p2(t)
-    d3 = lambda t: 1 - p3(t)
+    p2 = lambda t: 1
+    d00 = lambda t: 0.4* (1 / (1 + np.exp(-0.5 * (t - 16))))
+    d01 = lambda t: 0.4* (1 / (1 + np.exp(-0.5 * (t - 16))))
+    d10 = lambda t: 0.4* (1 / (1 + np.exp(-0.6 * (t - 16))))
+    d11 = lambda t: 0.4* (1 / (1 + np.exp(-0.6 * (t - 16))))
 
-    system.add_reaction(p0, [1, 0, 0, 0, 0], [2, 0, 0, 0, 0], index=0) # 0 self renew
-    system.add_reaction(p1, [0, 1, 0, 0, 0], [0, 2, 0, 0, 0], index=1) # 1 self renew
-    system.add_reaction(p2, [0, 0, 1, 0, 0], [0, 0, 2, 0, 0], index=2) # 2 self renew
-    system.add_reaction(p3, [0, 0, 0, 1, 0], [0, 0, 0, 2, 0], index=3) # 3 self renew
-    system.add_reaction(p4, [0, 0, 0, 0, 1], [0, 0, 0, 0, 2], index=4) # 4 self renew
-    system.add_reaction(d0, [1, 0, 0, 0, 0], [0, 1, 0, 0, 0], index=5) # 0 -> 1 differentiation
-    system.add_reaction(d1, [0, 1, 0, 0, 0], [0, 0, 1, 0, 0], index=6) # 1 -> 2 differentiation
-    system.add_reaction(d2, [0, 0, 1, 0, 0], [0, 0, 0, 1, 0], index=7) # 2 -> 3 differentiation
-    system.add_reaction(d3, [0, 0, 0, 1, 0], [0, 0, 0, 0, 1], index=8) # 3 -> 4 differentiation
+
+    system.add_reaction(p0, [1, 0, 0, 0, 0], [2, 0, 0, 0, 0], index=0)
+    system.add_reaction(p1, [0, 1, 0, 0, 0], [0, 2, 0, 0, 0], index=1)
+    system.add_reaction(p1, [0, 0, 1, 0, 0], [0, 0, 2, 0, 0], index=2)
+    system.add_reaction(p2, [0, 0, 0, 1, 0], [0, 0, 0, 2, 0], index=3)
+    system.add_reaction(p2, [0, 0, 0, 0, 1], [0, 0, 0, 0, 2], index=4)
+    system.add_reaction(d00, [1, 0, 0, 0, 0], [0, 1, 0, 0, 0], index=5)
+    system.add_reaction(d01, [1, 0, 0, 0, 0], [0, 0, 1, 0, 0], index=6)
+    system.add_reaction(d10, [0, 1, 0, 0, 0], [0, 0, 0, 1, 0], index=7)
+    system.add_reaction(d11, [0, 1, 0, 0, 0], [0, 0, 0, 0, 1], index=8)
 
     system.evolute(20000000)
-
-    tree_file_name = f"tree_origin_linear_{filename}.csv"
-    cell_num_file_name = f"cell_num_linear_{filename}.csv"
+    
+    tree_file_name = f"tree_origin_bif_{filename}.csv"
+    cell_num_file_name = f"cell_num_bif_{filename}.csv"
 
     curr_cells = []
     t = np.array(system.generation_time)
@@ -73,16 +73,16 @@ while True:
         f'{data_path}/{tree_file_name}', system.anc_cells, curr_cells, system.t[-1]
     )
     try:
-        reconstruct(f'{data_path}/tree_origin_linear_{filename}.csv', output=f'{data_path}/linear_tree_gt_{filename}.nwk', num=5000, is_balance=True)
+        reconstruct(f'{data_path}/tree_origin_bif_{filename}.csv', output=f'{data_path}/bif_tree_gt_{filename}.nwk', num=5000, is_balance=True)
         break
     except:
         os.system(f'rm {data_path}/{tree_file_name}')
         os.system(f'rm {data_path}/{cell_num_file_name}')
 
-tree_file = f'{data_path}/linear_tree_gt_{filename}.nwk'
+tree_file = f'{data_path}/bif_tree_gt_{filename}.nwk'
 phylo_tree, branch_colors = loadtree(tree_file)
 sampled_cells = [i.name for i in phylo_tree.get_terminals()]
-cell_names, cell_states, cell_generation = get_annotation(f'{data_path}/tree_origin_linear_{filename}.csv')
+cell_names, cell_states, cell_generation = get_annotation(f'{data_path}/tree_origin_bif_{filename}.csv')
 cell_states = pd.DataFrame(data=cell_states, index=cell_names).loc[sampled_cells]
 cell_generation = pd.DataFrame(data=cell_generation, index=cell_names).loc[sampled_cells].to_numpy()
 
@@ -93,41 +93,41 @@ sd = scData(
     cell_names=sampled_cells
 )
 
-ge, base_expr = sim_base_expr(sd.phylo_tree,
-                                 cell_states,
-                                 Ngene=4000,
-                                 r_variant_gene=0.4,
-                                 diff_map={0:[0],1:[0],2:[1],3:[2],4:[3]},
-                                 forward_map={},
-                                 mu0_loc=0,
-                                 mu0_scale=1,
-                                 drift_loc=0,
-                                 drift_scale=0.1,
-                                )
-
-sd.count = get_count_from_base_expr(add_lineage_noise(sd.phylo_tree, base_expr), alpha=0.5)
-sd.count.to_csv(f'{data_path}/count_linear_{filename}.csv')
-sd.dimensionality_reduction(method='tsne', perplexity=30)
-sd.Xdr.to_csv(f'{data_path}/tsne_linear_{filename}.csv')
-
-
 # ge, base_expr = sim_base_expr(sd.phylo_tree,
 #                                  cell_states,
 #                                  Ngene=4000,
-#                                  r_variant_gene=0.2,
-#                                  diff_map={0:[0],1:[0],2:[0],3:[1],4:[1]},
-#                                  pseudo_state_time={0:[0,5], 1:[7,12], 2:[7,12], 3:[13,18], 4:[13,18]},
+#                                  r_variant_gene=0.4,
+#                                  diff_map={0:[0],1:[0],2:[1],3:[2],4:[3]},
 #                                  forward_map={},
 #                                  mu0_loc=0,
 #                                  mu0_scale=1,
 #                                  drift_loc=0,
-#                                  drift_scale=0.03,
+#                                  drift_scale=0.1,
 #                                 )
 
 # sd.count = get_count_from_base_expr(add_lineage_noise(sd.phylo_tree, base_expr), alpha=0.5)
-# sd.count.to_csv(f'{data_path}/count_bifurcated_{filename}.csv')
-# sd.dimensionality_reduction(method='umap')
-# sd.Xdr.to_csv(f'{data_path}/umap_bifurcated_{filename}.csv')
+# sd.count.to_csv(f'{data_path}/count_bif_{filename}.csv')
+# sd.dimensionality_reduction(method='tsne', perplexity=30)
+# sd.Xdr.to_csv(f'{data_path}/tsne_linear_{filename}.csv')
+
+
+ge, base_expr = sim_base_expr(sd.phylo_tree,
+                                 cell_states,
+                                 Ngene=4000,
+                                 r_variant_gene=0.2,
+                                 diff_map={0:[0],1:[0],2:[0],3:[1],4:[1]},
+                                 pseudo_state_time={0:[0,5], 1:[7,12], 2:[7,12], 3:[13,18], 4:[13,18]},
+                                 forward_map={},
+                                 mu0_loc=0,
+                                 mu0_scale=1,
+                                 drift_loc=0,
+                                 drift_scale=0.03,
+                                )
+
+sd.count = get_count_from_base_expr(add_lineage_noise(sd.phylo_tree, base_expr), alpha=0.5)
+sd.count.to_csv(f'{data_path}/count_bif_{filename}.csv')
+sd.dimensionality_reduction(method='umap')
+sd.Xdr.to_csv(f'{data_path}/umap_bif_{filename}.csv')
 
 
 
