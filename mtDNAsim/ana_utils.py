@@ -12,7 +12,7 @@ from scipy.stats import chi2, nbinom, pearsonr, spearmanr
 from sklearn.neighbors import NearestNeighbors
 from matplotlib import font_manager
 import matplotlib.patheffects as pe
-
+from collections import Counter
 
 def loadtree(file):
     '''
@@ -504,3 +504,43 @@ def corr_plot(x, y, ax, stats='pearson', r0_x=None, r0_y=None, r1_x=None, r1_y=N
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     return ax
+
+def specific_mutation(cell, cell_group, mts, cutoff=0):
+    '''
+    mt = pickle.load(open('xx.pkl', 'rb'))
+    cell_group = ['<3_0>', '<3_1>', '<3_4>', '<3_3>', '<3_5>', '<3_6>', '<3_7>', '<3_8>']
+    specific_mutation('<3_1>', cell_group, mt, cutoff=0)
+    '''
+    
+    if cell in cell_group:
+        cell_group.remove(cell)
+    if cutoff:
+        cnt = Counter(sum([list(i) for i in mt[cell]], []))
+        muts = np.array(list(cnt.keys()))[np.array(list(cnt.values()))>cutoff]
+        group_muts = set()
+        for j in cell_group:
+            cnt = Counter(sum([list(i) for i in mt[j]], []))
+            jmuts = np.array(list(cnt.keys()))[np.array(list(cnt.values()))>cutoff]
+            group_muts = group_muts.union(set(jmuts))
+    else:
+        muts = set(sum([list(i) for i in mt[cell]], []))
+        group_muts = set(sum([sum([list(i) for i in mt[j]], []) for j in cell_group], []))
+    muts, group_muts = list(muts), list(group_muts)
+    return np.array(muts)[~np.isin(muts, group_muts)]
+
+def ancestor_tracing(cells, ancestors, tree, count=True):
+    '''
+    from Bio import Phylo
+    tree = Phylo.read('xxx.nwk', format='newick')
+    cells = ['<19_1015>', '<25_1878>', '<25_586>']
+    ancestors = ['<3_0>', '<3_1>', '<3_4>', '<3_3>', '<3_5>', '<3_6>', '<3_7>', '<3_8>']
+    ancestor_tracing(cells, ancestors, tree)
+    '''
+    ancestors = [tree.find_any(i) for i in ancestors]
+    res = np.array([None]*len(cells))
+    for anc in ancestors:
+        res[np.isin(cells, [i.name for i in anc.get_terminals()])] = anc.name
+    if count:
+        return Counter(res)
+    else:
+        return res

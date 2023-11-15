@@ -1,7 +1,8 @@
 import os
 import datetime
-
+import warnings
 fn = str(datetime.datetime.now().microsecond)
+warnings.warn(f'sim_id:{fn}', Warning)
 path = '/data3/wangkun/mtsim_res/res_1113/linear_const'
 os.mkdir(f'{path}/{fn}')
 path = f'{path}/{fn}'
