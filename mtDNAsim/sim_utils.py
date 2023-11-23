@@ -590,15 +590,3 @@ def mut_freq(mt_muts, max_mut_id = None, sel_cells=None):
     mf = pd.DataFrame(mut_freqs, index=cell_names)
     mf = mf[mf.columns[mf.sum()>0]]
     return mf
-    max_mut_id += 1
-    mut_freqs = []
-    cell_names = []
-    for cell in tqdm(sel_cells):
-        mut_pos = np.zeros((len(mt_muts[cell]), max_mut_id))
-        for ind, mt in enumerate(mt_muts[cell]):
-            mut_pos[ind][list(mt)] = 1
-        mut_freqs.append(mut_pos.sum(0)/len(mt_muts[cell]))
-        cell_names.append(cell)
-    mf = pd.DataFrame(mut_freqs, index=cell_names)
-    mf = mf[mf.columns[mf.sum()>0]]
-    return mf
