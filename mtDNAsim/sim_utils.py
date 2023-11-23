@@ -83,7 +83,7 @@ def sim_base_expr(
         mu0_scale:
             Variation of initial expression
         drift_loc:
-            Mean of gene drift
+            Mean of gene drift 
         drift_scale:
             Variation of drift
     Returns:
@@ -574,8 +574,22 @@ def mtmutation(tree, mut_rate=1.6e-3, **params):
     return mt_mutations, global_mutid
 
 def mut_freq(mt_muts, max_mut_id = None, sel_cells=None):
+    if sel_cells is None:
+        sel_cells = list(mt_muts.keys())
     if not max_mut_id:
-        max_mut_id = np.max([np.max(list(j)) for j in mt_muts[i.name] if j for i in mt_muts])
+        max_mut_id = max([max([max(list(i)+[0]) for i in mt_muts[j]]) for j in sel_cells])
+    max_mut_id += 1
+    mut_freqs = []
+    cell_names = []
+    for cell in tqdm(sel_cells):
+        mut_pos = np.zeros((len(mt_muts[cell]), max_mut_id))
+        for ind, mt in enumerate(mt_muts[cell]):
+            mut_pos[ind][list(mt)] = 1
+        mut_freqs.append(mut_pos.sum(0)/len(mt_muts[cell]))
+        cell_names.append(cell)
+    mf = pd.DataFrame(mut_freqs, index=cell_names)
+    mf = mf[mf.columns[mf.sum()>0]]
+    return mf
     max_mut_id += 1
     mut_freqs = []
     cell_names = []

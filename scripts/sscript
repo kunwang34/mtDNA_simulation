@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH -J mt_sim_5kcells
+#SBATCH -J mt_800
 #SBATCH -p all
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH --mem=10G
 #SBATCH -t 0
 #SBATCH -o oe/%x-%j.log 
-#SBATCH -e oe/%x-%j.err 
-python sim_build_tree.py
+#SBATCH -e oe/%x-%j.err
+python single_branch_simulation.py -p bif_const// -f 389616 -b const -m bif
