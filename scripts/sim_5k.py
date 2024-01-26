@@ -12,13 +12,19 @@ import pickle
 parser = argparse.ArgumentParser(description='save file name')
 parser.add_argument('-p', type=str)
 parser.add_argument('-f', type=str)
+parser.add_argument('-m', type=str)
+parser.add_argument('-bn', type=str)
+
 filename = parser.parse_args().f
 data_path = parser.parse_args().p
+model = parser.parse_args().m
+bn = parser.parse_args().bn
+
 if data_path is None:
     data_path = "../results"
     
 num_elements = 5
-
+os.mkdir(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/")
 while True:
     system = Gillespie(
         num_elements,
@@ -62,27 +68,27 @@ while True:
 
 
     #     cell_num_file_name = cell_num_file_name[:-1] + str(int(cell_num_file_name[-1]) + 1)
-
+    
     np.savetxt(
-        f'{data_path}/{cell_num_file_name}',
+        f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/{cell_num_file_name}",
         np.hstack((t.reshape(-1, 1), cell_num_traj)),
         fmt="%.5f",
     )
 
     sim_utils.wirte_lineage_info(
-        f'{data_path}/{tree_file_name}', system.anc_cells, curr_cells, system.t[-1]
+        f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/{tree_file_name}", system.anc_cells, curr_cells, system.t[-1]
     )
     try:
-        reconstruct(f'{data_path}/tree_origin_linear_{filename}.csv', output=f'{data_path}/linear_tree_gt_{filename}.nwk', num=5000, is_balance=True)
+        reconstruct(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/tree_origin_linear_{filename}.csv", output=f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/linear_tree_gt_{filename}.nwk", num=5000, is_balance=True)
         break
     except:
-        os.system(f'rm {data_path}/{tree_file_name}')
-        os.system(f'rm {data_path}/{cell_num_file_name}')
+        os.system(f"rm {data_path}/{model}_{bn.replace('mid', '')}/{filename}/{tree_file_name}")
+        os.system(f"rm {data_path}/{model}_{bn.replace('mid', '')}/{filename}/{cell_num_file_name}")
 
-tree_file = f'{data_path}/linear_tree_gt_{filename}.nwk'
+tree_file = f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/linear_tree_gt_{filename}.nwk"
 phylo_tree, branch_colors = loadtree(tree_file)
 sampled_cells = [i.name for i in phylo_tree.get_terminals()]
-cell_names, cell_states, cell_generation = get_annotation(f'{data_path}/tree_origin_linear_{filename}.csv')
+cell_names, cell_states, cell_generation = get_annotation(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/tree_origin_linear_{filename}.csv")
 cell_states = pd.DataFrame(data=cell_states, index=cell_names).loc[sampled_cells]
 cell_generation = pd.DataFrame(data=cell_generation, index=cell_names).loc[sampled_cells].to_numpy()
 
@@ -106,9 +112,9 @@ ge, base_expr = sim_base_expr(sd.phylo_tree,
                                 )
 
 sd.count = get_count_from_base_expr(add_lineage_noise(sd.phylo_tree, base_expr), alpha=0.5)
-sd.count.to_csv(f'{data_path}/count_linear_{filename}.csv')
+sd.count.to_csv(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/count_linear_{filename}.csv")
 sd.dimensionality_reduction(method='tsne', perplexity=30)
-sd.Xdr.to_csv(f'{data_path}/tsne_linear_{filename}.csv')
+sd.Xdr.to_csv(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/tsne_linear_{filename}.csv")
 
 
 # ge, base_expr = sim_base_expr(sd.phylo_tree,
@@ -141,84 +147,84 @@ mt_cn = {
     'const':lambda x: 2 
 }
 
-for bn in ['const']:
-    for imr in [5,1,0.1]:
-        success = 0
-        while not success:
-            try:
-                mt_muts, mutid = mtmutation(phylo_tree, mut_rate=0.0016, init_mut_rate=imr, mt_copynumber=mt_cn[bn], nmts=500)
-                success = 1
-            except:
-                None
+# for bn in ['const', 'mid']:
+for imr in [5,1,0.1]:
+    success = 0
+    while not success:
+        try:
+            mt_muts, mutid = mtmutation(phylo_tree, mut_rate=0.0016, init_mut_rate=imr, mt_copynumber=mt_cn[bn], nmts=500)
+            success = 1
+        except:
+            None
 
-        pre_existing_mut = set()
-        for i in mt_muts['<0_0>']:
-            pre_existing_mut = pre_existing_mut.union(i)
-        
-        pickle.dump(mt_muts, open(f'{data_path}/mt_allmuts_{bn}_{imr}_{filename}.pkl', 'wb'))
-        mf = mut_freq(mt_muts, mutid, sel_cells=[i.name for i in phylo_tree.get_terminals()])
-        mt_seqs = mf.astype(bool).astype(int)
-        mt_pre = mt_seqs[mt_seqs.columns[np.isin(mt_seqs.columns, list(pre_existing_mut))]]
-        mt_dn =  mt_seqs[mt_seqs.columns[~np.isin(mt_seqs.columns, list(pre_existing_mut))]]
-        mf.to_csv(f'{data_path}/mt_mut_freq_{bn}_{imr}_{filename}.csv')
-        mf1 = deepcopy(mf)
-        mf1[mf1<0.01] = 0
-        mt1_seqs = mf1.astype(bool).astype(int)
-        mt1_pre = mt1_seqs[mt1_seqs.columns[np.isin(mt1_seqs.columns, list(pre_existing_mut))]]
-        mt1_dn =  mt1_seqs[mt1_seqs.columns[~np.isin(mt1_seqs.columns, list(pre_existing_mut))]]
+    pre_existing_mut = set()
+    for i in mt_muts['<0_0>']:
+        pre_existing_mut = pre_existing_mut.union(i)
 
-        mf5 = deepcopy(mf)
-        mf5[mf5<0.05] = 0
-        mt5_seqs = mf5.astype(bool).astype(int)
-        mt5_pre = mt5_seqs[mt5_seqs.columns[np.isin(mt5_seqs.columns, list(pre_existing_mut))]]
-        mt5_dn =  mt5_seqs[mt5_seqs.columns[~np.isin(mt5_seqs.columns, list(pre_existing_mut))]]
+    pickle.dump(mt_muts, open(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/mt_allmuts_{bn}_{imr}_{filename}.pkl", 'wb'))
+    mf = mut_freq(mt_muts, mutid, sel_cells=[i.name for i in phylo_tree.get_terminals()])
+    mt_seqs = mf.astype(bool).astype(int)
+    mt_pre = mt_seqs[mt_seqs.columns[np.isin(mt_seqs.columns, list(pre_existing_mut))]]
+    mt_dn =  mt_seqs[mt_seqs.columns[~np.isin(mt_seqs.columns, list(pre_existing_mut))]]
+    mf.to_csv(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/mt_mut_freq_{bn}_{imr}_{filename}.csv")
+    mf1 = deepcopy(mf)
+    mf1[mf1<0.01] = 0
+    mt1_seqs = mf1.astype(bool).astype(int)
+    mt1_pre = mt1_seqs[mt1_seqs.columns[np.isin(mt1_seqs.columns, list(pre_existing_mut))]]
+    mt1_dn =  mt1_seqs[mt1_seqs.columns[~np.isin(mt1_seqs.columns, list(pre_existing_mut))]]
 
-        with open(f'{data_path}/mt_mut_{bn}_{imr}_{filename}.phy', 'w') as f:
-            f.write('{} {}\n'.format(*mt_seqs.shape))
-            for cell in mt_seqs.index:
-                f.write('{} {}\n'.format(cell[1:-1], ''.join(mt_seqs.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))
+    mf5 = deepcopy(mf)
+    mf5[mf5<0.05] = 0
+    mt5_seqs = mf5.astype(bool).astype(int)
+    mt5_pre = mt5_seqs[mt5_seqs.columns[np.isin(mt5_seqs.columns, list(pre_existing_mut))]]
+    mt5_dn =  mt5_seqs[mt5_seqs.columns[~np.isin(mt5_seqs.columns, list(pre_existing_mut))]]
 
-        with open(f'{data_path}/mt_mut_{bn}_{imr}_pre_{filename}.phy', 'w') as f:
-            f.write('{} {}\n'.format(*mt_pre.shape))
-            for cell in mt_pre.index:
-                f.write('{} {}\n'.format(cell[1:-1], ''.join(mt_pre.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))
+    with open(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/mt_mut_{bn}_{imr}_{filename}.phy", 'w') as f:
+        f.write('{} {}\n'.format(*mt_seqs.shape))
+        for cell in mt_seqs.index:
+            f.write('{} {}\n'.format(cell[1:-1], ''.join(mt_seqs.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))
 
-        with open(f'{data_path}/mt_mut_{bn}_{imr}_dn_{filename}.phy', 'w') as f:
-            f.write('{} {}\n'.format(*mt_dn.shape))
-            for cell in mt_dn.index:
-                f.write('{} {}\n'.format(cell[1:-1], ''.join(mt_dn.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))  
+    with open(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/mt_mut_{bn}_{imr}_pre_{filename}.phy", 'w') as f:
+        f.write('{} {}\n'.format(*mt_pre.shape))
+        for cell in mt_pre.index:
+            f.write('{} {}\n'.format(cell[1:-1], ''.join(mt_pre.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))
 
-        with open(f'{data_path}/mt1_mut_{bn}_{imr}_{filename}.phy', 'w') as f:
-            f.write('{} {}\n'.format(*mt1_seqs.shape))
-            for cell in mt1_seqs.index:
-                f.write('{} {}\n'.format(cell[1:-1], ''.join(mt1_seqs.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))
+    with open(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/mt_mut_{bn}_{imr}_dn_{filename}.phy", 'w') as f:
+        f.write('{} {}\n'.format(*mt_dn.shape))
+        for cell in mt_dn.index:
+            f.write('{} {}\n'.format(cell[1:-1], ''.join(mt_dn.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))  
 
-        with open(f'{data_path}/mt1_mut_{bn}_{imr}_pre_{filename}.phy', 'w') as f:
-            f.write('{} {}\n'.format(*mt1_pre.shape))
-            for cell in mt1_pre.index:
-                f.write('{} {}\n'.format(cell[1:-1], ''.join(mt1_pre.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))
+    with open(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/mt1_mut_{bn}_{imr}_{filename}.phy", 'w') as f:
+        f.write('{} {}\n'.format(*mt1_seqs.shape))
+        for cell in mt1_seqs.index:
+            f.write('{} {}\n'.format(cell[1:-1], ''.join(mt1_seqs.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))
 
-        with open(f'{data_path}/mt1_mut_{bn}_{imr}_dn_{filename}.phy', 'w') as f:
-            f.write('{} {}\n'.format(*mt1_dn.shape))
-            for cell in mt1_dn.index:
-                f.write('{} {}\n'.format(cell[1:-1], ''.join(mt1_dn.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))    
+    with open(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/mt1_mut_{bn}_{imr}_pre_{filename}.phy", 'w') as f:
+        f.write('{} {}\n'.format(*mt1_pre.shape))
+        for cell in mt1_pre.index:
+            f.write('{} {}\n'.format(cell[1:-1], ''.join(mt1_pre.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))
 
-        with open(f'{data_path}/mt5_mut_{bn}_{imr}_{filename}.phy', 'w') as f:
-            f.write('{} {}\n'.format(*mt5_seqs.shape))
-            for cell in mt5_seqs.index:
-                f.write('{} {}\n'.format(cell[1:-1], ''.join(mt5_seqs.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))
+    with open(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/mt1_mut_{bn}_{imr}_dn_{filename}.phy", 'w') as f:
+        f.write('{} {}\n'.format(*mt1_dn.shape))
+        for cell in mt1_dn.index:
+            f.write('{} {}\n'.format(cell[1:-1], ''.join(mt1_dn.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))    
 
-        with open(f'{data_path}/mt5_mut_{bn}_{imr}_pre_{filename}.phy', 'w') as f:
-            f.write('{} {}\n'.format(*mt_pre.shape))
-            for cell in mt5_pre.index:
-                f.write('{} {}\n'.format(cell[1:-1], ''.join(mt5_pre.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))
+    with open(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/mt5_mut_{bn}_{imr}_{filename}.phy", 'w') as f:
+        f.write('{} {}\n'.format(*mt5_seqs.shape))
+        for cell in mt5_seqs.index:
+            f.write('{} {}\n'.format(cell[1:-1], ''.join(mt5_seqs.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))
 
-        with open(f'{data_path}/mt5_mut_{bn}_{imr}_dn_{filename}.phy', 'w') as f:
-            f.write('{} {}\n'.format(*mt_dn.shape))
-            for cell in mt5_dn.index:
-                f.write('{} {}\n'.format(cell[1:-1], ''.join(mt5_dn.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))     
+    with open(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/mt5_mut_{bn}_{imr}_pre_{filename}.phy", 'w') as f:
+        f.write('{} {}\n'.format(*mt_pre.shape))
+        for cell in mt5_pre.index:
+            f.write('{} {}\n'.format(cell[1:-1], ''.join(mt5_pre.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))
 
-with open(f'{data_path}/dna_mut_{filename}.phy', 'w') as f:
+    with open(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/mt5_mut_{bn}_{imr}_dn_{filename}.phy", 'w') as f:
+        f.write('{} {}\n'.format(*mt_dn.shape))
+        for cell in mt5_dn.index:
+            f.write('{} {}\n'.format(cell[1:-1], ''.join(mt5_dn.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))     
+
+with open(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/dna_mut_{filename}.phy", 'w') as f:
     f.write('{} {}\n'.format(*seqs.shape))
     for cell in seqs.index:
         f.write('{} {}\n'.format(cell[1:-1], ''.join(seqs.loc[cell].astype(str)).replace('0', 'A').replace('1', 'G')))

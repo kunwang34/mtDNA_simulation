@@ -577,7 +577,7 @@ def mut_freq(mt_muts, max_mut_id = None, sel_cells=None):
     if sel_cells is None:
         sel_cells = list(mt_muts.keys())
     if not max_mut_id:
-        max_mut_id = max([max([max(list(i)+[0]) for i in mt_muts[j]]) for j in sel_cells])
+        max_mut_id = max([max([max(list(i)+[0]) for i in mt_muts[j]]+[0]) for j in sel_cells])
     max_mut_id += 1
     mut_freqs = []
     cell_names = []

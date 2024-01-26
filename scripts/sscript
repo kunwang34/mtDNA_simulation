@@ -3,8 +3,8 @@
 #SBATCH -p all
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH --mem=10G
+#SBATCH --mem=20G
 #SBATCH -t 0
 #SBATCH -o oe/%x-%j.log 
 #SBATCH -e oe/%x-%j.err
-python single_branch_simulation.py -p bif_const// -f 389616 -b const -m bif
+python single_branch_simulation_random_sample.py -p linear_/ -f 914990 -bn mid -m linear
