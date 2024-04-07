@@ -1,18 +1,20 @@
 import os
 
-path = 'linear_mid'
+# path = 'bifurcated_mid'
+path = 'bifurcated_const'
 mode = '_random_sample'
+# mode= ''
 files = os.listdir(f"/data3/wangkun/mtsim_res/res_1113/{path.replace('mid', '')}/")
 files = [i for i in files if i[0] !='b']
 files = [i for i in files if i[0] !='l']
 files = [i for i in files if i[0] !='r']
 sl_script = [
 '#!/bin/bash',
-'#SBATCH -J mt_800',
+f'#SBATCH -J mt_800_{path}_{mode}',
 '#SBATCH -p all',
 '#SBATCH -N 1',
 '#SBATCH -n 1',
-'#SBATCH --mem=20G',
+'#SBATCH --mem=10G',
 '#SBATCH -t 0',
 '#SBATCH -o oe/%x-%j.log ',
 '#SBATCH -e oe/%x-%j.err' ]
@@ -28,7 +30,7 @@ for i in files:
     with open('./sscript', 'w') as f:
         for l in sl_script:
             f.write(f'{l}\n')
-        f.write(f"python single_branch_simulation{mode}.py -p {path.replace('mid', '')}/ -f {i} -bn {path.split('_')[-1]} -m {path.split('_')[0].replace('bifurcated', 'bif')}")
+        f.write(f"python single_branch_simulation{mode}.py -p {path.replace('mid', '')}/ -f {i} -bn {path.split('_')[-1]} -m {path.split('_')[0].replace('bifurcated', 'bif')} -mu 0.4")
     
     os.system('sbatch sscript')
     

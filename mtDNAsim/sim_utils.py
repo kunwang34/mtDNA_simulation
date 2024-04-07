@@ -590,3 +590,14 @@ def mut_freq(mt_muts, max_mut_id = None, sel_cells=None):
     mf = pd.DataFrame(mut_freqs, index=cell_names)
     mf = mf[mf.columns[mf.sum()>0]]
     return mf
+
+def rs_cvt(mts_rs):
+    mts_new = dict()
+    n_cells = []
+    for i in mts_rs:
+        n_cells.append(len(mts_rs[i]))
+    living_cells = np.array(list(mts_rs.keys()))[np.array(n_cells)!=0]
+    for cell in living_cells:
+        for cnt, c in enumerate(mts_rs[cell]):
+            mts_new[f'{cell}_{cnt}'] = c
+    return mts_new
