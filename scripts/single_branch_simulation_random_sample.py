@@ -12,6 +12,7 @@ parser.add_argument('-p', type=str)
 parser.add_argument('-f', type=str)
 parser.add_argument('-bn', type=str)
 parser.add_argument('-m', type=str)
+parser.add_argument('-s', type=float)
 parser.add_argument('-mu', type=float, default=0.4)
 
 filename = parser.parse_args().f
@@ -19,6 +20,7 @@ data_path = parser.parse_args().p
 diff_model = parser.parse_args().m
 bottleneck = parser.parse_args().bn
 mt_mu = parser.parse_args().mu
+s = parser.parse_args().s
 warnings.warn(f'sim_id:{filename}', Warning)
 
 if data_path is None:
@@ -65,7 +67,19 @@ def cell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, tar
         cell2[i] = mt_new
     return list(cell1), list(cell2), global_mutid
 
-def ncell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, target_nmts=500, p=0.5):
+# def ncell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, target_nmts=500, p=0.5):
+#     res = []
+#     for cell in mt_muts:
+#         res1, res2, global_mutid = cell_division_with_mt1(cell, global_mutid, mut_rate, mt_copynumber=mt_copynumber)
+#         res.append(res1)
+#         res.append(res2)
+#     n_cells = len(res)
+#     res_new = []
+#     for i in np.where(np.random.binomial(1, p, n_cells))[0]:
+#         res_new.append(res[i])
+#     return res_new, global_mutid 
+
+def ncell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, target_nmts=500, p=0.5, s=1):
     res = []
     for cell in mt_muts:
         res1, res2, global_mutid = cell_division_with_mt1(cell, global_mutid, mut_rate, mt_copynumber=mt_copynumber)
@@ -73,16 +87,21 @@ def ncell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, ta
         res.append(res2)
     n_cells = len(res)
     res_new = []
-    for i in np.where(np.random.binomial(1, p, n_cells))[0]:
-        res_new.append(res[i])
+    sel = [bool(int(i)) for i in ''.join(np.random.choice('10,00,11'.split(','), n_cells//2, p=[s, (1-p)*(1-s), p*(1-s)]))]
+    # for i in np.where(np.random.binomial(1, p, n_cells))[0]:
+    #     res_new.append(res[i])
+    for ind, choice in enumerate(sel):
+        if choice:
+            res_new.append(res[ind])
     return res_new, global_mutid 
 
-tree = Phylo.read(f'/data3/wangkun/mtsim_res/res_1113/{data_path}{filename}/{diff_model}_tree_gt_{filename}.nwk', format='newick')
-tree_origin = pd.read_csv(f'/data3/wangkun/mtsim_res/res_1113/{data_path}{filename}/tree_origin_{diff_model}_{filename}.csv')
+
+tree = Phylo.read(f'/data3/wangkun/mtsim_res/res_0415/{data_path}{filename}/{diff_model}_tree_gt_{filename}.nwk', format='newick')
+tree_origin = pd.read_csv(f'/data3/wangkun/mtsim_res/res_0415/{data_path}{filename}/tree_origin_{diff_model}_{filename}.csv')
 # for imb in [0.1, 1, 5]:
 imb = 0.1
 
-mt = pickle.load(open(f'/data3/wangkun/mtsim_res/res_1113/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}.pkl', 'rb'))  
+mt = pickle.load(open(f'/data3/wangkun/mtsim_res/res_0415/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}.pkl', 'rb'))  
 sel_cells = [i.name for i in tree.get_terminals()]
 max_mut_id = max([max([max(list(i)+[0]) for i in mt[j]]+[0]) for j in sel_cells])
 
@@ -103,87 +122,11 @@ with tqdm(total=800) as pbar:
             else:
                 p = 0.5
             for cell in tree.get_terminals():
-                tmp = ncell_division_with_mt1(new_mts_1[cell.name], max_mut_id, mt_mu, p)
+                tmp = ncell_division_with_mt1(new_mts_1[cell.name], max_mut_id, mt_mu, p=p, s=s)
                 max_mut_id = tmp[-1]
                 new_mts_1[cell.name] = tmp[0]  
             pbar.update(1)
-        pickle.dump(new_mts_1, open(f'/data3/wangkun/mtsim_res/res_1113/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_{gen}_{mt_mu}_rs.pkl', 'wb'))
+        pickle.dump(new_mts_1, open(f'/data3/wangkun/mtsim_res/res_0415/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_{gen}_{mt_mu}_{s}_rs.pkl', 'wb'))
     
     
     
-# new_mts_15 = dict()
-# new_mts_50 = dict()
-# new_mts_100 = dict()
-# new_mts_300 = dict()
-# new_mts_800 = dict()
-# if diff_model == 'const':
-#     for cell in tree.get_terminals():
-#         new_mts_15[cell.name] = [mt[cell.name]]
-#         for _ in range(15):
-#             tmp = ncell_division_with_mt1(new_mts_15[cell.name], max_mut_id, mt_mu)
-#             new_mts_15[cell.name] = tmp[0]
-#             global_mutid = tmp[-1]
-            
-#         new_mts_50[cell.name] = new_mts_15[cell.name]
-#         for _ in range(35):
-#             tmp = ncell_division_with_mt1(new_mts_50[cell.name], max_mut_id, mt_mu)
-#             new_mts_50[cell.name] = tmp[0]
-#             global_mutid = tmp[-1]
-            
-#         new_mts_100[cell.name] = new_mts_50[cell.name]
-#         for _ in range(50):
-#             tmp = ncell_division_with_mt1(new_mts_100[cell.name], max_mut_id, mt_mu)
-#             new_mts_100[cell.name] = tmp[0]
-#             global_mutid = tmp[-1]
-            
-#         new_mts_300[cell.name] = new_mts_100[cell.name]
-#         for _ in range(200):
-#             tmp = ncell_division_with_mt1(new_mts_300[cell.name], max_mut_id, mt_mu)
-#             new_mts_300[cell.name] = tmp[0]
-#             global_mutid = tmp[-1]
-            
-#         new_mts_800[cell.name] = new_mts_300[cell.name]
-#         for _ in range(500):
-#             tmp = ncell_division_with_mt1(new_mts_800[cell.name], max_mut_id, mt_mu)
-#             new_mts_800[cell.name] = tmp[0]
-#             global_mutid = tmp[-1]
-# else:
-#     for cell in tree.get_terminals():
-#         new_mts_15[cell.name] = [mt[cell.name]]
-#         for _ in range(12):
-#             tmp = ncell_division_with_mt1(new_mts_15[cell.name], max_mut_id, mt_mu, 2.2)
-#             new_mts_15[cell.name] = tmp[0]
-#             global_mutid = tmp[-1]
-#         for _ in range(3):
-#             tmp = ncell_division_with_mt1(new_mts_15[cell.name], max_mut_id, mt_mu)
-#             new_mts_15[cell.name] = tmp[0]
-#             global_mutid = tmp[-1]
-#         new_mts_50[cell.name] = deepcopy(new_mts_15[cell.name])
-#         for _ in range(35):
-#             tmp = ncell_division_with_mt1(new_mts_50[cell.name], max_mut_id, mt_mu)
-#             new_mts_50[cell.name] = tmp[0]
-#             global_mutid = tmp[-1]
-            
-#         new_mts_100[cell.name] = deepcopy(new_mts_50[cell.name])
-#         for _ in range(50):
-#             tmp = ncell_division_with_mt1(new_mts_100[cell.name], max_mut_id, mt_mu)
-#             new_mts_100[cell.name] = tmp[0]
-#             global_mutid = tmp[-1]
-            
-#         new_mts_300[cell.name] = deepcopy(new_mts_100[cell.name])
-#         for _ in range(200):
-#             tmp = ncell_division_with_mt1(new_mts_300[cell.name], max_mut_id, mt_mu)
-#             new_mts_300[cell.name] = tmp[0]
-#             global_mutid = tmp[-1]
-            
-#         new_mts_800[cell.name] = deepcopy(new_mts_300[cell.name])
-#         for _ in range(500):
-#             tmp = ncell_division_with_mt1(new_mts_800[cell.name], max_mut_id, mt_mu)
-#             new_mts_800[cell.name] = tmp[0]
-#             global_mutid = tmp[-1]
-
-# pickle.dump(new_mts_15, open(f'/data3/wangkun/mtsim_res/res_1113/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_15_rs.pkl', 'wb'))
-# pickle.dump(new_mts_50, open(f'/data3/wangkun/mtsim_res/res_1113/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_50_rs.pkl', 'wb'))
-# pickle.dump(new_mts_100, open(f'/data3/wangkun/mtsim_res/res_1113/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_100_rs.pkl', 'wb'))
-# pickle.dump(new_mts_300, open(f'/data3/wangkun/mtsim_res/res_1113/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_300_rs.pkl', 'wb'))
-# pickle.dump(new_mts_800, open(f'/data3/wangkun/mtsim_res/res_1113/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_800_rs.pkl', 'wb'))

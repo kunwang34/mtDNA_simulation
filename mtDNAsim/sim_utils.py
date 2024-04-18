@@ -1,6 +1,9 @@
 from collections import defaultdict
 from copy import deepcopy
 from math import log
+from scipy.sparse import coo_matrix
+from tqdm.notebook import tqdm
+from collections import Counter
 import matplotlib.pyplot as plt
 from tqdm.autonotebook import tqdm
 import numpy as np
@@ -601,3 +604,27 @@ def rs_cvt(mts_rs):
         for cnt, c in enumerate(mts_rs[cell]):
             mts_new[f'{cell}_{cnt}'] = c
     return mts_new
+
+def sparse_freq(cells, df=True):
+    cell_names = list(cells.keys())
+    max_mut_id = max([max([max(list(i)+[0]) for i in cells[j]]+[0]) for j in cell_names])
+    
+    _row, _col, _data = [], [], []
+    with tqdm(total=len(cell_names)) as pbar:
+        for ind, cell in enumerate(cells):
+            cell_muts = sum([list(i) for i in cells[cell]], [])
+            nmts = len(cells[cell])
+            cnt = Counter(cell_muts)
+            for mut in cnt:
+                _col.append(mut)
+                _row.append(ind)
+                _data.append(cnt[mut]/nmts)
+            pbar.update(1)
+    freq = coo_matrix((_data, (_row, _col))).tocsr()
+    mut_id = np.arange(freq.shape[1])
+    sel = np.array(freq.sum(axis=0)!=0).flatten()
+    mut_id = mut_id[sel]
+    freq = freq[:, sel]
+    if df:
+        freq = pd.DataFrame(freq.A, index=cell_names, columns=mut_id)
+    return freq

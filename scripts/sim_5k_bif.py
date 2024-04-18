@@ -148,12 +148,12 @@ mt_cn = {
     'const':lambda x: 2 
 }
 
-# for bn in ['const', 'mid']:
-for imr in [5,1,0.1]:
+#for bn in ['const', 'mid']:
+for imr in [0.1]:
     success = 0
     while not success:
         try:
-            mt_muts, mutid = mtmutation(phylo_tree, mut_rate=0.0016, init_mut_rate=imr, mt_copynumber=mt_cn[bn], nmts=500)
+            mt_muts, mutid = mtmutation(phylo_tree, mut_rate=0.0008, init_mut_rate=imr, mt_copynumber=mt_cn[bn], nmts=500)
             success = 1
         except:
             None

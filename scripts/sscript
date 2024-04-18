@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J mt_800_bifurcated_const__random_sample
+#SBATCH -J rerun_tsne
 #SBATCH -p all
 #SBATCH -N 1
 #SBATCH -n 1
@@ -7,4 +7,4 @@
 #SBATCH -t 0
 #SBATCH -o oe/%x-%j.log 
 #SBATCH -e oe/%x-%j.err
-python single_branch_simulation_random_sample.py -p bifurcated_const/ -f 490017 -bn const -m bif -mu 0.4
+python retsne.py -p bifurcated_/ -f 123456 -bn mid -m bif

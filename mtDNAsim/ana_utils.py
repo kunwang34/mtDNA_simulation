@@ -544,3 +544,57 @@ def ancestor_tracing(cells, ancestors, tree, count=True):
         return Counter(res)
     else:
         return res
+    
+def find_ancestor(tree, clone, cutoff):
+    res = tree.common_ancestor(clone)
+    level = int(res.name.split('_')[0][1:])
+    coverage = []
+    best_coverage = 1
+    ress = []
+    for i in Phylo.BaseTree._level_traverse(res, lambda elem: elem.clades):
+        curr_level = int(i.name.split('_')[0][1:])
+        if curr_level > level:
+            level = curr_level
+            if np.sum(np.array(coverage)>cutoff)==0:
+                break
+            else:
+                res = ress[np.where(np.array(coverage)==max(coverage))[0][0]]
+            coverage = []
+            ress = []
+        termi = [i.name for i in i.get_terminals()]
+        coverage.append(np.sum(np.isin(clone, termi))/len(clone))
+        ress.append(i)
+        
+    return res.name
+
+def best_cutoff(mv1, generation, generation_cutoff=10, correction=False, plot=True):
+    mv1, generation = np.array(mv1), np.array(generation)
+    x = np.linspace(0, 1, 101)
+    precision = []
+    for cutoff in x:
+        generation_t = generation[mv1>cutoff]
+        if len(generation_t) == 0:
+            precision.append(1)
+        else:
+            precision.append(np.sum(generation_t>generation_cutoff)/len(generation_t))
+    if correction:
+        for i in range(20, len(precision)):
+            if precision[i] < precision[i-1]:
+                precision[i] = precision[i-1]
+    if plot:
+        fit = np.poly1d(np.polyfit(x, precision, 4))
+        fig, ax = plt.subplots(1, 2, figsize=(3.2*2,3))
+        ax[1].plot(x, fit.deriv().deriv()(x))
+        ax[1].hlines(0,1,0, color='tab:gray')
+        ax[1].set_xlabel('cutoff')
+        ax[1].set_ylabel('$d^2$(precision)')
+    
+        ax[0].plot(x, precision)
+        ax[0].set_xlabel('cutoff')
+        ax[0].set_ylabel('precision')
+        ax[0].plot(x, fit(x))
+    d2 = fit.deriv().deriv()(x)
+    x = x[40:]
+    d2 = d2[40:]
+    plt.tight_layout()
+    return x[d2<0][0]

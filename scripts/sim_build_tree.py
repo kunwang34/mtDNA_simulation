@@ -1,16 +1,27 @@
 import os
 import datetime
 import warnings
-fn = str(datetime.datetime.now().microsecond)
-warnings.warn(f'sim_id:{fn}', Warning)
-path = '/data3/wangkun/mtsim_res/res_1113/'
-# os.mkdir(f'{path}/{fn}')
-# path = f'{path}/{fn}'
-os.system(f'python sim_5k.py -p {path} -f {fn} -m linear -bn const')
-# os.system(f'python sim_5k_bif.py -p {path} -f {fn} -m bifurcated -bn const')
-# os.system(f'Rscript tree_reconstruct.r -p {path} -f {fn}')
-# files = os.listdir(path)
-# files = [i for i in files if i.endswith(f'{fn}.phy')]
-# for file in files:
-#     os.system(f'iqtree -s {path}/{file} -quiet')
 
+sl_script = [
+'#!/bin/bash',
+f'#SBATCH -J mt_sim',
+'#SBATCH -p all',
+'#SBATCH -N 1',
+'#SBATCH -n 1',
+'#SBATCH --mem=10G',
+'#SBATCH -t 0',
+'#SBATCH -o oe/%x-%j.log ',
+'#SBATCH -e oe/%x-%j.err' ]
+
+
+path = '/data3/wangkun/mtsim_res/res_0415/'
+
+for _ in range(10):
+    for m in ['linear', 'bifurcated']:
+        for bn in ['const', 'mid']:
+            fn = str(datetime.datetime.now().microsecond)
+            with open('./sscript', 'w') as f:
+                for l in sl_script:
+                    f.write(f'{l}\n')
+                f.write(f"python sim_5k_{m.replace('bifurcated', 'bif')}.py -p {path} -f {fn} -m {m} -bn {bn}")
+            os.system('sbatch sscript')
