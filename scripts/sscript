@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J rerun_tsne
+#SBATCH -J mt_800_linear_mid__random_sample
 #SBATCH -p all
 #SBATCH -N 1
 #SBATCH -n 1
@@ -7,4 +7,4 @@
 #SBATCH -t 0
 #SBATCH -o oe/%x-%j.log 
 #SBATCH -e oe/%x-%j.err
-python retsne.py -p bifurcated_/ -f 123456 -bn mid -m bif
+python single_branch_simulation_random_sample.py -p linear_/ -f 741271 -bn mid -m linear -mu 0.4 -s 1.0

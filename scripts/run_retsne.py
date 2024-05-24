@@ -2,7 +2,7 @@ import os
 
 for path in ['bifurcated_const', 'bifurcated_mid']:
 # for path in ['linear_const']:
-    files = os.listdir(f"/data3/wangkun/mtsim_res/res_0415/{path.replace('mid', '')}/")
+    files = os.listdir(f"/data3/wangkun/mtsim_res/res_0419/{path.replace('mid', '')}/")
     files = [i for i in files if i[0] !='b']
     files = [i for i in files if i[0] !='l']
     files = [i for i in files if i[0] !='r']
@@ -21,7 +21,7 @@ for path in ['bifurcated_const', 'bifurcated_mid']:
     for i in files:
         # if not i in ['123456']:
         #     continue
-        sim_res = os.listdir(f"/data3/wangkun/mtsim_res/res_0415/{path.replace('mid', '')}/{i}")
+        sim_res = os.listdir(f"/data3/wangkun/mtsim_res/res_0419/{path.replace('mid', '')}/{i}")
 
         with open('./sscript', 'w') as f:
             for l in sl_script:

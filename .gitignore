@@ -1,6 +1,7 @@
 *.csv
 results/
 results1/
+backup
 *.err
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -121,19 +121,19 @@ sd = scData(
 ge, base_expr = sim_base_expr(sd.phylo_tree,
                                  cell_states,
                                  Ngene=4000,
-                                 r_variant_gene=0.2,
+                                 r_variant_gene=0.4,
                                  diff_map={0:[0],1:[0],2:[0],3:[1],4:[1]},
                                  pseudo_state_time={0:[0,5], 1:[7,12], 2:[7,12], 3:[13,18], 4:[13,18]},
                                  forward_map={},
                                  mu0_loc=0,
                                  mu0_scale=1,
                                  drift_loc=0,
-                                 drift_scale=0.03,
+                                 drift_scale=0.05,
                                 )
 
 sd.count = get_count_from_base_expr(add_lineage_noise(sd.phylo_tree, base_expr), alpha=0.5)
 sd.count.to_csv(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/count_bif_{filename}.csv")
-sd.dimensionality_reduction(method='umap')
+sd.dimensionality_reduction(method='tsne', scale=50, perplexity=100, target='count')
 sd.Xdr.to_csv(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/umap_bif_{filename}.csv")
 
 
@@ -143,7 +143,7 @@ seqs = seqs.astype(int)
 
 mt_cn = {
     'early':lambda x: 1.3 if x <= 5 else 2.2,
-    'mid':lambda x: 1.6 if x <= 10 else 2.2,
+    'mid':lambda x: 1.6 if x <= 10 else 2.25,
     'late':lambda x: 1.8 if x <= 20 else 2.4,
     'const':lambda x: 2 
 }

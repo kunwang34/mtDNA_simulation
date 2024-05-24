@@ -14,11 +14,13 @@ f'#SBATCH -J mt_sim',
 '#SBATCH -e oe/%x-%j.err' ]
 
 
-path = '/data3/wangkun/mtsim_res/res_0415/'
+path = '/data3/wangkun/mtsim_res/res_0421/'
 
-for _ in range(10):
-    for m in ['linear', 'bifurcated']:
-        for bn in ['const', 'mid']:
+for _ in range(20):
+    # for m in ['linear', 'bifurcated']:
+    #     for bn in ['const', 'mid']:
+    for m in ['linear']:
+        for bn in ['mid']:
             fn = str(datetime.datetime.now().microsecond)
             with open('./sscript', 'w') as f:
                 for l in sl_script:

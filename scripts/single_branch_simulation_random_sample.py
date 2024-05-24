@@ -67,18 +67,6 @@ def cell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, tar
         cell2[i] = mt_new
     return list(cell1), list(cell2), global_mutid
 
-# def ncell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, target_nmts=500, p=0.5):
-#     res = []
-#     for cell in mt_muts:
-#         res1, res2, global_mutid = cell_division_with_mt1(cell, global_mutid, mut_rate, mt_copynumber=mt_copynumber)
-#         res.append(res1)
-#         res.append(res2)
-#     n_cells = len(res)
-#     res_new = []
-#     for i in np.where(np.random.binomial(1, p, n_cells))[0]:
-#         res_new.append(res[i])
-#     return res_new, global_mutid 
-
 def ncell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, target_nmts=500, p=0.5, s=1):
     res = []
     for cell in mt_muts:
@@ -96,12 +84,12 @@ def ncell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, ta
     return res_new, global_mutid 
 
 
-tree = Phylo.read(f'/data3/wangkun/mtsim_res/res_0415/{data_path}{filename}/{diff_model}_tree_gt_{filename}.nwk', format='newick')
-tree_origin = pd.read_csv(f'/data3/wangkun/mtsim_res/res_0415/{data_path}{filename}/tree_origin_{diff_model}_{filename}.csv')
+tree = Phylo.read(f'/data3/wangkun/mtsim_res/res_0421/{data_path}{filename}/{diff_model}_tree_gt_{filename}.nwk', format='newick')
+tree_origin = pd.read_csv(f'/data3/wangkun/mtsim_res/res_0421/{data_path}{filename}/tree_origin_{diff_model}_{filename}.csv')
 # for imb in [0.1, 1, 5]:
 imb = 0.1
 
-mt = pickle.load(open(f'/data3/wangkun/mtsim_res/res_0415/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}.pkl', 'rb'))  
+mt = pickle.load(open(f'/data3/wangkun/mtsim_res/res_0421/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}.pkl', 'rb'))  
 sel_cells = [i.name for i in tree.get_terminals()]
 max_mut_id = max([max([max(list(i)+[0]) for i in mt[j]]+[0]) for j in sel_cells])
 
@@ -126,7 +114,7 @@ with tqdm(total=800) as pbar:
                 max_mut_id = tmp[-1]
                 new_mts_1[cell.name] = tmp[0]  
             pbar.update(1)
-        pickle.dump(new_mts_1, open(f'/data3/wangkun/mtsim_res/res_0415/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_{gen}_{mt_mu}_{s}_rs.pkl', 'wb'))
+        pickle.dump(new_mts_1, open(f'/data3/wangkun/mtsim_res/res_0421/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_{gen}_{mt_mu}_{s}_rs.pkl', 'wb'))
     
     
     

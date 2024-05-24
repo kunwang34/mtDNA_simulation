@@ -4,9 +4,9 @@ import os
 # path = 'bifurcated_const'
 mode = '_random_sample'
 # mode= ''
-for path in ['bifurcated_const', 'bifurcated_mid', 'linear_const', 'linear_mid']:
-# for path in ['linear_const']:
-    files = os.listdir(f"/data3/wangkun/mtsim_res/res_0415/{path.replace('mid', '')}/")
+# for path in ['bifurcated_const', 'bifurcated_mid', 'linear_const', 'linear_mid']:
+for path in ['linear_mid']:
+    files = os.listdir(f"/data3/wangkun/mtsim_res/res_0421/{path.replace('mid', '')}/")
     files = [i for i in files if i[0] !='b']
     files = [i for i in files if i[0] !='l']
     files = [i for i in files if i[0] !='r']
@@ -25,13 +25,13 @@ for path in ['bifurcated_const', 'bifurcated_mid', 'linear_const', 'linear_mid']
     for i in files:
         # if i in '22995,29303,50041,88021,123986,511657'.split(','):
         #     continue
-        if not i in ['123456']:
-            continue
-        sim_res = os.listdir(f"/data3/wangkun/mtsim_res/res_0415/{path.replace('mid', '')}/{i}")
+        # if not i in '670220,518463,637545'.split(','):
+        #     continue
+        sim_res = os.listdir(f"/data3/wangkun/mtsim_res/res_0421/{path.replace('mid', '')}/{i}")
         # sim_res = [i for i in sim_res if i.split('_')[-1]=='50.pkl']
         # if len(sim_res) == 3:
         #     continue
-        for s in [0.25, 1.0]:
+        for s in [0.25, 0.8, 0.9, 0.95, 1.0]:
             with open('./sscript', 'w') as f:
                 for l in sl_script:
                     f.write(f'{l}\n')

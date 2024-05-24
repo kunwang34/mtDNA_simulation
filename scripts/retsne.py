@@ -20,10 +20,10 @@ data_path = parser.parse_args().p
 diff_model = parser.parse_args().m
 bottleneck = parser.parse_args().bn
 
-count = pd.read_csv(f'/data3/wangkun/mtsim_res/res_0415/{data_path}{filename}/count_{diff_model}_{filename}.csv', index_col=0)
+count = pd.read_csv(f'/data3/wangkun/mtsim_res/res_0419/{data_path}{filename}/count_{diff_model}_{filename}.csv', index_col=0)
 sd = pv.scData(count=count)
 # sd.dimensionality_reduction(method='tsne', perplexity=30)
 sd.dimensionality_reduction(method='tsne', scale=100, perplexity=150, target='count')
 # sd.dimensionality_reduction(method='tsne', scale=500, perplexity=20, target='count')
 sd.Xdr.index = sd.count.index
-sd.Xdr.to_csv(f'/data3/wangkun/mtsim_res/res_0415/{data_path}{filename}/tsne_{diff_model}_{filename}.csv')
+sd.Xdr.to_csv(f'/data3/wangkun/mtsim_res/res_0419/{data_path}{filename}/tsne_{diff_model}_{filename}.csv')
