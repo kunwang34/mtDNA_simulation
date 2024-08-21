@@ -2,7 +2,6 @@ from collections import defaultdict
 from copy import deepcopy
 from math import log
 from scipy.sparse import coo_matrix
-from tqdm.notebook import tqdm
 from collections import Counter
 import matplotlib.pyplot as plt
 from tqdm.autonotebook import tqdm
@@ -466,7 +465,10 @@ def dna_seq_simulation(tree, mut_prob=0.01, lseq=1e3):
     lseq = int(lseq)
     seqs = {tree.root.name:np.zeros(lseq)}
 
-    for i in tqdm(Phylo.BaseTree._preorder_traverse(tree.root, lambda elem: elem.clades), total=len(tree.get_terminals())+len(tree.get_nonterminals())):
+    for i in tqdm(Phylo.BaseTree._preorder_traverse(tree.root, lambda elem: elem.clades), 
+                  total=len(tree.get_terminals())+len(tree.get_nonterminals()),
+                  desc = 'Simulating DNA seq:'
+                 ):
         if not i.is_terminal():
             for j in i.clades:
                 seqs[j.name] = dna_seq_mutate(seqs[i.name], mut_prob)
@@ -505,11 +507,20 @@ def initialize_mtmut(nmts=1000, mut_rate=0.2, len_mtdna=16569, birth_rate=1, dea
     sys = Gillespie(1, [1], max_cell_num=nmts-1, mt_mut_rate=mut_rate)
     sys.add_reaction(lambda t: birth_rate, [1], [2], 0)
     sys.add_reaction(lambda t: death_rate, [1], [0], 0, rtype='death')
-    sys.evolute(10000)
+    sys.evolute(10000) 
     return [i.mt_muts for i in sys.curr_cells[0]]
 
-def cell_division_with_mt(mt_muts, global_mutid, mut_rate, mt_copynumber=2):
+def cell_division_with_mt(mt_muts, global_mutid, mut_rate, mt_copynumber=2, target_num=500):
     new_mts = []
+    if mt_copynumber == 2:
+        if len(mt_muts) < target_num * 0.8:
+            mt_copynumber = 2.2
+        elif len(mt_muts) > target_num * 1.2:
+            mt_copynumber = 1.9
+    if mt_copynumber > 2:
+        if len(mt_muts) > target_num*0.9:
+            mt_copynumber = 1.95
+        
     for mt in mt_muts:
         for _ in range(int(mt_copynumber)):
             new_mts.append(deepcopy(mt))
@@ -521,7 +532,9 @@ def cell_division_with_mt(mt_muts, global_mutid, mut_rate, mt_copynumber=2):
             for new_mut in range(np.random.poisson(mut_rate)):
                 new_mts[-1].add(global_mutid+1)
                 global_mutid += 1 
-    division = np.random.binomial(1, 0.5, len(new_mts)).astype(bool)
+    division = np.zeros(len(new_mts))
+    while (np.sum(division) > 0.6*len(new_mts)) or (np.sum(division) < 0.4*len(new_mts)):
+        division = np.random.binomial(1, 0.5, len(new_mts)).astype(bool)
     cell1 = np.array(new_mts)[division]
     cell2 = np.array(new_mts)[~division]
     return list(cell1), list(cell2), global_mutid
@@ -563,7 +576,10 @@ def mtmutation(tree, mut_rate=1.6e-3, **params):
     global_mutid = max([max(i.union({0})) for i in init_cell_muts])
     mt_mutations = {tree.root.name:init_cell_muts}
     
-    for i in tqdm(Phylo.BaseTree._preorder_traverse(tree.root, lambda elem: elem.clades), total=len(tree.get_terminals())+len(tree.get_nonterminals())):
+    for i in tqdm(Phylo.BaseTree._preorder_traverse(tree.root, lambda elem: elem.clades), 
+                  total=len(tree.get_terminals())+len(tree.get_nonterminals()),
+                  desc = 'Simulating MT mutation:'
+                 ):
         if not i.is_terminal():
             new_mts = cell_division_with_mt(mt_mutations[i.name], global_mutid, mut_rate, mt_copynumber(int(re.findall('(?<=<)[0-9]+', i.name)[0])))
             global_mutid = new_mts[2]

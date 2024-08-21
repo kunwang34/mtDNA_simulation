@@ -23,8 +23,14 @@ bn = parser.parse_args().bn
 if data_path is None:
     data_path = "../results"
     
-num_elements = 5
+try:
+    os.mkdir(f"{data_path}/{model}_{bn.replace('mid', '')}/")
+except:
+    pass
+
 os.mkdir(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/")
+
+num_elements = 5
 while True:
     system = Gillespie(
         num_elements,
@@ -141,9 +147,7 @@ seqs = DNAmutation(phylo_tree, mut_rate=0.5)
 seqs = seqs.astype(int)
 
 mt_cn = {
-    'early':lambda x: 1.3 if x <= 5 else 2.2,
-    'mid':lambda x: 1.6 if x <= 10 else 2.25,
-    'late':lambda x: 1.8 if x <= 20 else 2.4,
+    'mid':lambda x: 1.52 if x <= 10 else (2.85 if x <= 20 else 2),
     'const':lambda x: 2 
 }
 
@@ -167,6 +171,7 @@ for imr in [0.1]:
     mt_pre = mt_seqs[mt_seqs.columns[np.isin(mt_seqs.columns, list(pre_existing_mut))]]
     mt_dn =  mt_seqs[mt_seqs.columns[~np.isin(mt_seqs.columns, list(pre_existing_mut))]]
     mf.to_csv(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/mt_mut_freq_{bn}_{imr}_{filename}.csv")
+    
     mf1 = deepcopy(mf)
     mf1[mf1<0.01] = 0
     mt1_seqs = mf1.astype(bool).astype(int)

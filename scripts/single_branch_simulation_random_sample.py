@@ -10,12 +10,14 @@ from tqdm import tqdm
 parser = argparse.ArgumentParser(description=' ')
 parser.add_argument('-p', type=str)
 parser.add_argument('-f', type=str)
+parser.add_argument('-fo', type=str)
 parser.add_argument('-bn', type=str)
 parser.add_argument('-m', type=str)
 parser.add_argument('-s', type=float)
 parser.add_argument('-mu', type=float, default=0.4)
 
 filename = parser.parse_args().f
+folder = parser.parse_args().fo
 data_path = parser.parse_args().p
 diff_model = parser.parse_args().m
 bottleneck = parser.parse_args().bn
@@ -84,12 +86,12 @@ def ncell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, ta
     return res_new, global_mutid 
 
 
-tree = Phylo.read(f'/data3/wangkun/mtsim_res/res_0421/{data_path}{filename}/{diff_model}_tree_gt_{filename}.nwk', format='newick')
-tree_origin = pd.read_csv(f'/data3/wangkun/mtsim_res/res_0421/{data_path}{filename}/tree_origin_{diff_model}_{filename}.csv')
+tree = Phylo.read(f'/data3/wangkun/mtsim_res/{folder}/{data_path}{filename}/{diff_model}_tree_gt_{filename}.nwk', format='newick')
+tree_origin = pd.read_csv(f'/data3/wangkun/mtsim_res/{folder}/{data_path}{filename}/tree_origin_{diff_model}_{filename}.csv')
 # for imb in [0.1, 1, 5]:
 imb = 0.1
 
-mt = pickle.load(open(f'/data3/wangkun/mtsim_res/res_0421/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}.pkl', 'rb'))  
+mt = pickle.load(open(f'/data3/wangkun/mtsim_res/{folder}/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}.pkl', 'rb'))  
 sel_cells = [i.name for i in tree.get_terminals()]
 max_mut_id = max([max([max(list(i)+[0]) for i in mt[j]]+[0]) for j in sel_cells])
 
@@ -97,9 +99,10 @@ new_mts_1 = dict()
 for cell in tree.get_terminals():
     new_mts_1[cell.name] = [deepcopy(mt[cell.name])]
 
-gen = 0
-with tqdm(total=800) as pbar:
-    for i in [15, 35, 50, 200, 500]:
+gen = 20
+with tqdm(total=380) as pbar:
+    # for i in [15, 35, 50, 200, 500]:
+    for i in [30, 50, 50, 50, 50, 50, 50, 50]:
         for _ in range(i):
             gen += 1
             cell_number = np.sum([len(new_mts_1[i]) for i in new_mts_1.keys()])
@@ -114,7 +117,7 @@ with tqdm(total=800) as pbar:
                 max_mut_id = tmp[-1]
                 new_mts_1[cell.name] = tmp[0]  
             pbar.update(1)
-        pickle.dump(new_mts_1, open(f'/data3/wangkun/mtsim_res/res_0421/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_{gen}_{mt_mu}_{s}_rs.pkl', 'wb'))
+        pickle.dump(new_mts_1, open(f'/data3/wangkun/mtsim_res/{folder}/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_{gen}_{mt_mu}_{s}_rs.pkl', 'wb'))
     
     
     

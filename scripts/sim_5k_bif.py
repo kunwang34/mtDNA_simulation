@@ -19,6 +19,11 @@ data_path = parser.parse_args().p
 model = parser.parse_args().m
 bn = parser.parse_args().bn
 
+try:
+    os.mkdir(f"{data_path}/{model}_{bn.replace('mid', '')}/")
+except:
+    pass
+
 os.mkdir(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/")
 
 if data_path is None:
@@ -134,7 +139,7 @@ ge, base_expr = sim_base_expr(sd.phylo_tree,
 sd.count = get_count_from_base_expr(add_lineage_noise(sd.phylo_tree, base_expr), alpha=0.5)
 sd.count.to_csv(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/count_bif_{filename}.csv")
 sd.dimensionality_reduction(method='tsne', scale=50, perplexity=100, target='count')
-sd.Xdr.to_csv(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/umap_bif_{filename}.csv")
+sd.Xdr.to_csv(f"{data_path}/{model}_{bn.replace('mid', '')}/{filename}/tsne_bif_{filename}.csv")
 
 
 
@@ -142,11 +147,10 @@ seqs = DNAmutation(phylo_tree, mut_rate=0.5)
 seqs = seqs.astype(int)
 
 mt_cn = {
-    'early':lambda x: 1.3 if x <= 5 else 2.2,
-    'mid':lambda x: 1.6 if x <= 10 else 2.25,
-    'late':lambda x: 1.8 if x <= 20 else 2.4,
+    'mid':lambda x: 1.52 if x <= 10 else (2.85 if x <= 20 else 2),
     'const':lambda x: 2 
 }
+
 
 #for bn in ['const', 'mid']:
 for imr in [0.1]:

@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH -J mt_800_linear_mid__random_sample
+#SBATCH -J tree
 #SBATCH -p all
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH --mem=10G
+#SBATCH --mem=1G
 #SBATCH -t 0
 #SBATCH -o oe/%x-%j.log 
 #SBATCH -e oe/%x-%j.err
-python single_branch_simulation_random_sample.py -p linear_/ -f 741271 -bn mid -m linear -mu 0.4 -s 1.0
+python rf_calc.py -p /data3/wangkun/mtsim_res/240705/linear_ -i 913775
