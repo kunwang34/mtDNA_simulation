@@ -17,6 +17,9 @@ import warnings
 from .gene_expr import *
 import os
 import re
+import ete3
+from io import StringIO
+from scipy.stats import nbinom, binom
 
 def get_annotation(file):
     '''
@@ -486,19 +489,19 @@ def DNAmutation(tree, mut_rate=0.1):
     for i in tree.get_terminals():
         mut = []
         for j in tree.get_path(i):
-            if j.name in mutations:
-                mut = deepcopy(mutations[j.name])
+            if j in mutations:
+                mut = deepcopy(mutations[j])
             else:
                 for _ in range(np.random.poisson(mut_rate)):
                     mut.append(global_mutid+1)
                     global_mutid += 1
-                mutations[j.name] = deepcopy(mut)
+                mutations[j] = deepcopy(mut)
 
     mut_table = []
     cell_names = []
     for i in tree.get_terminals():
         seq = np.zeros(global_mutid+1)
-        seq[mutations[i.name]]=1
+        seq[mutations[i]]=1
         mut_table.append(seq)
         cell_names.append(i.name)
     return pd.DataFrame(np.array(mut_table), index=cell_names)
@@ -538,6 +541,7 @@ def cell_division_with_mt(mt_muts, global_mutid, mut_rate, mt_copynumber=2, targ
     cell1 = np.array(new_mts)[division]
     cell2 = np.array(new_mts)[~division]
     return list(cell1), list(cell2), global_mutid
+
 
 def mtmutation(tree, mut_rate=1.6e-3, **params):
     '''
@@ -610,6 +614,17 @@ def mut_freq(mt_muts, max_mut_id = None, sel_cells=None):
     mf = mf[mf.columns[mf.sum()>0]]
     return mf
 
+# def rs_cvt(mts_rs):
+#     mts_new = dict()
+#     n_cells = []
+#     for i in mts_rs:
+#         n_cells.append(len(mts_rs[i]))
+#     living_cells = np.array(list(mts_rs.keys()))[np.array(n_cells)!=0]
+#     for cell in living_cells:
+#         for cnt, c in enumerate(mts_rs[cell]):
+#             mts_new[f'{cell}_{cnt}'] = c
+#     return mts_new
+
 def rs_cvt(mts_rs):
     mts_new = dict()
     n_cells = []
@@ -617,15 +632,16 @@ def rs_cvt(mts_rs):
         n_cells.append(len(mts_rs[i]))
     living_cells = np.array(list(mts_rs.keys()))[np.array(n_cells)!=0]
     for cell in living_cells:
-        for cnt, c in enumerate(mts_rs[cell]):
-            mts_new[f'{cell}_{cnt}'] = c
+        for c in mts_rs[cell]:
+            mts_new[f'{list(c.keys())[0]}'] = list(c.values())[0]
     return mts_new
 
-def sparse_freq(cells, df=True):
+def sparse_freq(cells, df=True, count=False):
     cell_names = list(cells.keys())
     max_mut_id = max([max([max(list(i)+[0]) for i in cells[j]]+[0]) for j in cell_names])
     
     _row, _col, _data = [], [], []
+    _data_cnt = []
     with tqdm(total=len(cell_names)) as pbar:
         for ind, cell in enumerate(cells):
             cell_muts = sum([list(i) for i in cells[cell]], [])
@@ -635,12 +651,143 @@ def sparse_freq(cells, df=True):
                 _col.append(mut)
                 _row.append(ind)
                 _data.append(cnt[mut]/nmts)
+                _data_cnt.append(cnt[mut])
             pbar.update(1)
     freq = coo_matrix((_data, (_row, _col))).tocsr()
     mut_id = np.arange(freq.shape[1])
     sel = np.array(freq.sum(axis=0)!=0).flatten()
     mut_id = mut_id[sel]
     freq = freq[:, sel]
+    
     if df:
-        freq = pd.DataFrame(freq.A, index=cell_names, columns=mut_id)
-    return freq
+        freq = pd.DataFrame(freq.A, index=cell_names, columns=mut_id)    
+    if count:
+        count = coo_matrix((_data_cnt, (_row, _col))).tocsr()
+        mut_id = np.arange(count.shape[1])
+        sel = np.array(count.sum(axis=0)!=0).flatten()
+        mut_id = mut_id[sel]
+        count = count[:, sel]
+        if df:
+            count = pd.DataFrame(count.A, index=cell_names, columns=mut_id)
+        return freq, count
+    else:
+        return freq
+
+
+def cell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, target_nmts=500):
+    new_mts = []
+    nmts = len(mt_muts)
+    if nmts < target_nmts*0.8:
+        mt_copynumber = 2.3
+    elif nmts > target_nmts*1.2:
+        mt_copynumber = 1.8
+    else:
+        mt_copynumber = 2
+    
+    if mt_copynumber == 2:
+        new_mts = mt_muts*2
+    elif mt_copynumber > 2:
+        new_mts = mt_muts*2
+        n_mts = len(mt_muts)
+        addi = np.random.choice(range(n_mts), int(n_mts*(mt_copynumber-2)), replace=False)
+        new_mts = new_mts + list(np.array(mt_muts)[addi])
+    else:
+        new_mts = mt_muts
+        n_mts = len(mt_muts)
+        addi = np.random.choice(range(n_mts), int(n_mts*(mt_copynumber-1)), replace=False)
+        new_mts = new_mts + list(np.array(mt_muts)[addi])
+        
+    division = np.random.binomial(1, 0.5, len(new_mts)).astype(bool)
+    while (np.sum(division) < min(0.4*len(new_mts), 100)) or (np.sum(~division) < min(0.4*len(new_mts), 100)):
+        division = np.random.binomial(1, 0.5, len(new_mts)).astype(bool)
+    cell1 = np.array(new_mts)[division]
+    cell2 = np.array(new_mts)[~division]
+    for i in np.random.choice(range(len(cell1)), np.random.poisson(mut_rate)):
+        global_mutid += 1
+        mt_new = deepcopy(cell1[i])
+        mt_new.add(global_mutid)
+        cell1[i] = mt_new
+        
+    for i in np.random.choice(range(len(cell2)), np.random.poisson(mut_rate)):
+        global_mutid += 1
+        mt_new = deepcopy(cell2[i])
+        mt_new.add(global_mutid)
+        cell2[i] = mt_new
+    return list(cell1), list(cell2), global_mutid
+
+def ncell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, target_nmts=500, p=0.5, s=1):
+    res = []
+    for cell in mt_muts:
+        res1, res2, global_mutid = cell_division_with_mt1(list(cell.values())[0], global_mutid, mut_rate, mt_copynumber=mt_copynumber)
+        res.append({f'{list(cell.keys())[0]}0':res1})
+        res.append({f'{list(cell.keys())[0]}1':res2})
+    n_cells = len(res)
+    res_new = []
+    sel = [bool(int(i)) for i in ''.join(np.random.choice('10,00,11'.split(','), n_cells//2, p=[s, (1-p)*(1-s), p*(1-s)]))]
+    # for i in np.where(np.random.binomial(1, p, n_cells))[0]:
+    #     res_new.append(res[i])
+    for ind, choice in enumerate(sel):
+        if choice:
+            res_new.append(res[ind])
+    return res_new, global_mutid 
+
+
+def get_gt_tree(gt_tree30, mts, save_path = None, collapse=True):
+    tree100_gt = deepcopy(gt_tree30)
+    # mts = rs_cvt(mts)
+    mt_freq = sparse_freq(mts)
+    alive_cells = [i+'>' for i in set([i.split('>')[0] for i in mt_freq.index])]
+    keep_cells = []
+    for i in alive_cells:
+        for c in tree100_gt.get_path(tree100_gt.find_any(i)):
+            keep_cells.append(c.name)
+    keep_cells = list(set(keep_cells))
+    
+    tree_nwk = StringIO()
+    Phylo.write(gt_tree30, tree_nwk, 'newick')
+    tree_nwk = tree_nwk.getvalue()
+    tree100_gt = ete3.Tree(tree_nwk.replace('\n', ';'), format=1)
+    tree100_gt.prune(keep_cells)
+    tree100_gt = Phylo.read(StringIO(tree100_gt.write()), format='newick')
+    for i in tree100_gt.get_terminals():
+        i.branch_length = 1
+    for i in tree100_gt.get_nonterminals():
+        i.branch_length = 1
+    
+    expansion_clades = dict()
+    rec_cells = dict()
+    for c in tqdm(mt_freq.index):
+        anc_name, lin_info = c.split('>')
+        anc_name = f'{anc_name}>'
+        if not anc_name in expansion_clades:
+            expansion_clades[anc_name] = Phylo.BaseTree.Clade(branch_length=1, name=anc_name)
+            rec_cells[anc_name] = []
+        for li in range(len(lin_info)):
+            if f'{anc_name}{lin_info[:li+1]}' in rec_cells[anc_name]:
+                continue
+            else:
+                anc_t = expansion_clades[anc_name].find_any(f'{anc_name}{lin_info[:li]}')
+                anc_t.clades.append(Phylo.BaseTree.Clade(branch_length=1, name=f'{anc_name}{lin_info[:li+1]}'))
+                rec_cells[anc_name].append(f'{anc_name}{lin_info[:li+1]}')
+
+    for i in expansion_clades:
+        tree100_gt.find_any(i).clades = [expansion_clades[i]]
+    # Phylo.write(tree100_gt, f'{data_path}/gt_tree100.nwk', format='newick')
+    if collapse:
+        for i in tree100_gt.get_terminals():
+            for j in tree100_gt.get_path(i)[::-1][1:]:
+                if len(j.clades) == 1:
+                    tree100_gt.collapse(j)
+    if not save_path is None:
+        Phylo.write(tree100_gt, save_path, format='newick')
+    return tree100_gt
+
+def sequence_sim(f, coverage, n=2.5):
+    depth = nbinom(p=n/(n+coverage), n=n).rvs(size=f.shape)
+    read_cnt = binom(n=depth, p=f).rvs()
+    freq_samp = read_cnt/depth
+    freq_samp[np.isnan(freq_samp)] = 0
+    freq_samp = pd.DataFrame(freq_samp, index=f.index, columns=f.columns)
+    return freq_samp
+
+       

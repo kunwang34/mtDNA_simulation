@@ -18,18 +18,19 @@ if 'const' in path:
 else:
     bn = 'mid'
 mutrate = '0.8'
-for gen in [100, 400]:
-    for p in [0.1, 0.9]:
-        fn = f'dna_mut{mutrate}_{p}_{gen}.phy'
-        os.system(f'Rscript /home/wangkun/mtDNA_simulation/scripts/tree_reconstruct.r -p {path}/{simid} -f {fn}')
+mt_mutrate = '0.8'
+# for gen in [400]:
+#     for p in [0.1, 0.9]:
+#         fn = f'dna_mut{mutrate}_{p}_{gen}_{mt_mutrate}.phy'
+#         os.system(f'Rscript /home/wangkun/mtDNA_simulation/scripts/tree_reconstruct.r -p {path}/{simid} -f {fn}')
 
-translation_table = str.maketrans({'A': '1', 'G': '0'})
-for gen in [100, 400]:
+translation_table = str.maketrans({'A': '0', 'G': '1'})
+for gen in [400]:
     for p in [0.1, 0.9]:
-        with open(f'{path}/{simid}/dna_mut{mutrate}_{p}_{gen}.phy', 'r') as f2:
+        with open(f'{path}/{simid}/dna_mut{mutrate}_{p}_{gen}_{mt_mutrate}.phy', 'r') as f2:
             lines = f2.readlines()
-        with open(f'{path}/{simid}/dna_mut{mutrate}_{p}_{gen}_iqt.phy', 'w') as f1:
+        with open(f'{path}/{simid}/dna_mut{mutrate}_{p}_{gen}_{mt_mutrate}_iqt.phy', 'w') as f1:
             f1.write('\n'.join(lines).translate(translation_table))
-        os.system(f'iqtree -s {path}/{simid}/dna_mut{mutrate}_{p}_{gen}_iqt.phy -redo -mem 10G -nt 4 -st BIN -quiet')
+        os.system(f'iqtree -s {path}/{simid}/dna_mut{mutrate}_{p}_{gen}_{mt_mutrate}_iqt.phy -redo -mem 5G -nt 4 -st BIN -quiet')
 
         

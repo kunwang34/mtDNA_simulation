@@ -90,6 +90,8 @@ class Reaction:
         else:
             if 2 * sum(num_lefts) == sum(num_rights):
                 self.type = "proliferate"
+            elif sum(num_rights) == 0:
+                self.type = "death"
             else:
                 self.type = "differentiation"
 
@@ -208,7 +210,7 @@ class Gillespie:
             node.td = self.t[-1]
             self.anc_cells.append(node)
             
-        def death(i=0):
+        def death(i):
             node = np.random.choice(self.curr_cells[i])
             cell_num_per_gen[node.gen] -= 1
             self.curr_cells[i].remove(node)
@@ -251,7 +253,7 @@ class Gillespie:
                 proliferate(list(self.reaction.num_lefts).index(1))
             
             def death1(self):
-                death()
+                death(list(self.reaction.num_lefts).index(1))
 
             def differentiation1(self):
                 differentiate(

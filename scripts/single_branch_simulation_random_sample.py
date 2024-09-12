@@ -9,22 +9,35 @@ from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description=' ')
 parser.add_argument('-p', type=str)
-parser.add_argument('-f', type=str)
-parser.add_argument('-fo', type=str)
-parser.add_argument('-bn', type=str)
-parser.add_argument('-m', type=str)
+parser.add_argument('-i', type=str)
 parser.add_argument('-s', type=float)
 parser.add_argument('-mu', type=float, default=0.4)
+# parser.add_argument('-f', type=str)
+# parser.add_argument('-bn', type=str)
+# parser.add_argument('-m', type=str)
 
-filename = parser.parse_args().f
-folder = parser.parse_args().fo
+# filename = parser.parse_args().f
+# folder = parser.parse_args().fo
+# diff_model = parser.parse_args().m
+# bottleneck = parser.parse_args().bn
+
 data_path = parser.parse_args().p
-diff_model = parser.parse_args().m
-bottleneck = parser.parse_args().bn
+simid = parser.parse_args().i
 mt_mu = parser.parse_args().mu
 s = parser.parse_args().s
-warnings.warn(f'sim_id:{filename}', Warning)
+warnings.warn(f'sim_id:{simid}', Warning)
 
+
+if 'linear' in data_path:
+    diff_model = 'linear'
+else:
+    diff_model = 'bif'
+
+if 'const' in data_path:
+    bottleneck = 'const'
+else:
+    bottleneck = 'mid'
+    
 if data_path is None:
     data_path = "./"
 
@@ -86,12 +99,18 @@ def ncell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, ta
     return res_new, global_mutid 
 
 
-tree = Phylo.read(f'/data3/wangkun/mtsim_res/{folder}/{data_path}{filename}/{diff_model}_tree_gt_{filename}.nwk', format='newick')
-tree_origin = pd.read_csv(f'/data3/wangkun/mtsim_res/{folder}/{data_path}{filename}/tree_origin_{diff_model}_{filename}.csv')
+# tree = Phylo.read(f'/data3/wangkun/mtsim_res/{folder}/{data_path}{filename}/{diff_model}_tree_gt_{filename}.nwk', format='newick')
+# tree_origin = pd.read_csv(f'/data3/wangkun/mtsim_res/{folder}/{data_path}{filename}/tree_origin_{diff_model}_{filename}.csv')
+
+tree = Phylo.read(f'{data_path}/{simid}/{diff_model}_tree_gt_{simid}.nwk', format='newick')
+tree_origin = pd.read_csv(f'{data_path}/{simid}/tree_origin_{diff_model}_{simid}.csv')
+
 # for imb in [0.1, 1, 5]:
 imb = 0.1
 
-mt = pickle.load(open(f'/data3/wangkun/mtsim_res/{folder}/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}.pkl', 'rb'))  
+# mt = pickle.load(open(f'/data3/wangkun/mtsim_res/{folder}/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_{mt_mu}.pkl', 'rb'))  
+mt = pickle.load(open(f'{data_path}/{simid}/mt_allmuts_{bottleneck}_{imb}_{simid}_{mt_mu}.pkl', 'rb')) 
+
 sel_cells = [i.name for i in tree.get_terminals()]
 max_mut_id = max([max([max(list(i)+[0]) for i in mt[j]]+[0]) for j in sel_cells])
 
@@ -117,7 +136,8 @@ with tqdm(total=380) as pbar:
                 max_mut_id = tmp[-1]
                 new_mts_1[cell.name] = tmp[0]  
             pbar.update(1)
-        pickle.dump(new_mts_1, open(f'/data3/wangkun/mtsim_res/{folder}/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_{gen}_{mt_mu}_{s}_rs.pkl', 'wb'))
+        # pickle.dump(new_mts_1, open(f'/data3/wangkun/mtsim_res/{folder}/{data_path}{filename}/mt_allmuts_{bottleneck}_{imb}_{filename}_{gen}_{mt_mu}_{s}_rs.pkl', 'wb'))
+        pickle.dump(new_mts_1, open(f'{data_path}/{simid}/mt_allmuts_{bottleneck}_{imb}_{simid}_{gen}_{mt_mu}_{s}_rs.pkl', 'wb'))
     
     
     

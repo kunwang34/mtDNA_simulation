@@ -2,7 +2,8 @@ import os
 
 path = '/data3/wangkun/mtsim_res/240705/linear_const'
 # simids = os.listdir(path)
-for path in ['/data3/wangkun/mtsim_res/240705/linear_const', '/data3/wangkun/mtsim_res/240705/linear_']:
+# for path in ['/data3/wangkun/mtsim_res/240705/linear_const', '/data3/wangkun/mtsim_res/240705/linear_']:
+for path in ['/data3/wangkun/mtsim_res/240705/linear_const']:
     for simid in os.listdir(path):
         sl_script = [
         '#!/bin/bash',
@@ -10,7 +11,7 @@ for path in ['/data3/wangkun/mtsim_res/240705/linear_const', '/data3/wangkun/mts
         '#SBATCH -p all',
         '#SBATCH -N 1',
         '#SBATCH -n 4',
-        '#SBATCH --mem=10G',
+        '#SBATCH --mem=8G',
         '#SBATCH -t 0',
         '#SBATCH -o oe/%x-%j.log ',
         '#SBATCH -e oe/%x-%j.err' ]

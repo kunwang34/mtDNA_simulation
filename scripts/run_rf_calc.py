@@ -1,12 +1,16 @@
 import os
 
 
-for path in ['/data3/wangkun/mtsim_res/240705/linear_const', '/data3/wangkun/mtsim_res/240705/linear_']:
-    for simid in os.listdir(path):
+path = '/data3/wangkun/mtsim_res/20240903/'
+for model in os.listdir(path):
+    if model == 'test':
+        continue
+    for simid in os.listdir(f'{path}/{model}'):
         sl_script = [
         '#!/bin/bash',
-        '#SBATCH -J tree',
-        '#SBATCH -p all',
+        '#SBATCH -J rf_calc',
+        '#SBATCH -p all,fat',
+        '#SBATCH --exclude node3',
         '#SBATCH -N 1',
         '#SBATCH -n 1',
         '#SBATCH --mem=1G',
@@ -17,9 +21,7 @@ for path in ['/data3/wangkun/mtsim_res/240705/linear_const', '/data3/wangkun/mts
         with open('./sscript', 'w') as f:
             for l in sl_script:
                 f.write(f'{l}\n')
-            f.write(f"python rf_calc.py -p {path} -i {simid}")
-            # f.write(f"python mp_nj_tree.py -p {path} -i {simid}")
-            # f.write(f"python ml_tree.py -p {path} -i {simid}")
+            f.write(f"python rf_calc.py -p {path} -i {simid} -m {model}")
 
         os.system('sbatch sscript')
 

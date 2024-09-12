@@ -16,8 +16,7 @@ path <- opt$path
 seq = read.dna(paste(path, '/', fn, sep=''), format='sequential')
 dist_mat = dist.dna(seq, model='raw')
 tree_nj = nj(dist_mat)
-seq2 <- as.phyDat(seq)
-tree_mp <- optim.parsimony(tree_nj, seq2)
+# seq2 <- as.phyDat(seq)
+# tree_mp <- optim.parsimony(tree_nj, seq2)
 write.tree(tree_nj, file=paste(path, '/', fn, '_nj.nwk',sep=''))
-write.tree(tree_mp, file=paste(path, '/', fn, '_mp.nwk',sep=''))
-# }
+# write.tree(tree_mp, file=paste(path, '/', fn, '_mp.nwk',sep=''))
