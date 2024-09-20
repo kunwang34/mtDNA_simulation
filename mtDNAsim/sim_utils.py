@@ -782,12 +782,26 @@ def get_gt_tree(gt_tree30, mts, save_path = None, collapse=True):
         Phylo.write(tree100_gt, save_path, format='newick')
     return tree100_gt
 
-def sequence_sim(f, coverage, n=2.5):
+def sequence_sim(f, coverage, n=2.5, return_readcount=False, min_reads=1):
     depth = nbinom(p=n/(n+coverage), n=n).rvs(size=f.shape)
     read_cnt = binom(n=depth, p=f).rvs()
-    freq_samp = read_cnt/depth
-    freq_samp[np.isnan(freq_samp)] = 0
-    freq_samp = pd.DataFrame(freq_samp, index=f.index, columns=f.columns)
-    return freq_samp
+    if hasattr(min_reads, '__iter__'):
+        res = []
+        for mr in min_reads:
+            rc = deepcopy(read_cnt)
+            rc[rc<mr] = 0
+            freq_samp = rc/depth
+            freq_samp[np.isnan(freq_samp)] = 0
+            res.append(pd.DataFrame(freq_samp, index=f.index, columns=f.columns))
+    else:
+        rc = deepcopy(read_cnt)
+        rc[rc<min_reads] = 0
+        freq_samp = rc/depth
+        freq_samp[np.isnan(freq_samp)] = 0
+        res = pd.DataFrame(freq_samp, index=f.index, columns=f.columns)
+    if return_readcount:
+        return pd.DataFrame(read_cnt, index=f.index, columns=f.columns), res
+    else:
+        return res
 
        

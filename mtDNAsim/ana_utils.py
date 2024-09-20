@@ -3,7 +3,7 @@ import warnings
 from copy import deepcopy
 from io import StringIO
 from itertools import combinations
-
+from ete3 import Tree
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -13,6 +13,7 @@ from sklearn.neighbors import NearestNeighbors
 from matplotlib import font_manager
 import matplotlib.patheffects as pe
 from collections import Counter
+from collections import defaultdict
 
 def loadtree(file):
     '''
@@ -598,3 +599,63 @@ def best_cutoff(mv1, generation, generation_cutoff=10, correction=False, plot=Tr
     d2 = d2[40:]
     plt.tight_layout()
     return x[d2<0][0]
+
+def clone_aggregation_score(tree_file, state_file):
+    with open(state_file, 'r') as f:
+        color_file = f.readlines()
+    cell_states = dict()
+    for i in color_file:
+        try:
+            cell, state = i.split(' ')
+            cell_states[cell] = state.strip()
+        except:
+            pass
+    tree_mt = Phylo.read(tree_file, 'newick') 
+    state_mt = []
+    for i in tree_mt.get_terminals():
+        try:
+            state_mt.append(cell_states[i.name])
+        except:
+            state_mt.append('0')
+    state_diff_mt = 0
+    for i, j in zip(state_mt[:-1], state_mt[1:]):
+        if i!=j:
+            state_diff_mt += 1
+    return 1-np.log(len(set(state_mt))/state_diff_mt)/np.log(len(set(state_mt))/len(state_mt))
+
+
+def write_rf_colors(tree_gt, tree_mt, output):
+    betas_gt = []
+    for i in tree_gt.get_nonterminals():
+        betas_gt.append([j.name for j in i.get_terminals()])
+    mt_color = defaultdict(float)
+    for i in tree_mt.get_nonterminals():
+        terminals_tmp = [j.name for j in i.get_terminals()]
+        if not terminals_tmp in betas_gt:
+            for j in terminals_tmp:
+                mt_color[j] =  max(mt_color[j], 0)
+        else:
+            for j in terminals_tmp:
+                mt_color[j] =  1
+    header = ['DATASET_COLORSTRIP','SEPARATOR SPACE','DATASET_LABEL label1','COLOR #ff0000','STRIP_WIDTH 120', 'DATA']            
+    color_tab = ['#b0221d', '#649f7f']
+    with open(output, 'w') as f:
+        f.write('\n'.join(header))
+        f.write('\n')
+        for i in mt_color:
+            f.write(f'{i} {color_tab[int(mt_color[i])]}\n')
+    return None 
+
+def robinson_foulds(tree1:'Bio.Phylo.BaseTree', tree2:'Bio.Phylo.BaseTree'):
+    f = StringIO()
+    Phylo.write(tree1, f, 'newick')
+    tree1 = Tree(f.getvalue(), format=1)
+    # tree1.prune(tree1.get_leaf_names())
+    f = StringIO()
+    Phylo.write(tree2, f, 'newick')
+    tree2 = Tree(f.getvalue(), format=1)
+    # tree2.prune(tree2.get_leaf_names())
+    try:
+        return tree1.robinson_foulds(tree2)
+    except:
+        return tree1.robinson_foulds(tree2, unrooted_trees=True)

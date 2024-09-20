@@ -20,10 +20,11 @@ translation_table = str.maketrans({'A': '1', 'G': '0'})
 print(path,simid) 
 for cutoff in [0, 0.01]:
     for gen in [30, 130, 330]:
-        fn = f'mt_allmuts_{gen}_{cutoff}.phy'
-        os.system(f'Rscript /home/wangkun/mtDNA_simulation/scripts/tree_reconstruct.r -p {path}/{simid} -f {fn}')
-        fn = f'mt_allmuts_{gen}_{cutoff}_seq.phy'
-        os.system(f'Rscript /home/wangkun/mtDNA_simulation/scripts/tree_reconstruct.r -p {path}/{simid} -f {fn}')
+        for i in range(1,6):
+            fn = f'mt_allmuts_{gen}_{cutoff}_seq{i}.phy'
+            os.system(f'Rscript /home/wangkun/mtDNA_simulation/scripts/tree_reconstruct.r -p {path}/{simid} -f {fn}')
+        # fn = f'mt_allmuts_{gen}_{cutoff}_seq2.phy'
+        # os.system(f'Rscript /home/wangkun/mtDNA_simulation/scripts/tree_reconstruct.r -p {path}/{simid} -f {fn}')
 
 #     with open(f'{path}/{simid}/mt_allmuts_const_0.1_{cutoff}.phy', 'r') as f2:
 #         lines = f2.readlines()

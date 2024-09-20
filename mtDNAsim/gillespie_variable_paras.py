@@ -120,6 +120,7 @@ class Gillespie:
         inits:list = None,
         init_cells:list = None,
         max_cell_num:int = 20000,
+        max_genetion_time:int=99999,
         mt_mut_rate:int = None
     ):
 
@@ -142,6 +143,7 @@ class Gillespie:
         self.generation_time = [0]
         self.mt_mut_rate = mt_mut_rate
         self.max_cell_num = max_cell_num
+        self.max_genetion_time = max_genetion_time
 
     def add_reaction(self, rate:callable=None, num_lefts:list=None, num_rights:list=None, index:int=None, rtype:str=None):
         '''
@@ -262,35 +264,48 @@ class Gillespie:
                 )
 
         cls = SwitchCase()
+        
+        if self.max_genetion_time < 99999:
+            pbar = tqdm(total=self.max_genetion_time)
+        else:
+            pbar = tqdm(total=self.max_cell_num)
+        # with tqdm(total=self.max_cell_num) as pbar:
 
-        with tqdm(total=self.max_cell_num) as pbar:
+        for _ in range(steps):
+            all_cell_num = sum(cell_num_per_gen.values())
+            
+            if all_cell_num > self.max_cell_num:
+                # print("\n maximum cell number reached")
+                break
 
-            for _ in range(steps):
-                all_cell_num = sum(cell_num_per_gen.values())
+            avg_generation = np.dot(
+                list(cell_num_per_gen.keys()), list(cell_num_per_gen.values())
+            ) / sum(cell_num_per_gen.values())
+            if self.max_genetion_time < 99999:
+                pbar.update(avg_generation-self.generation_time[-1])
+            else:
                 pbar.update(all_cell_num - pbar.n)
-                if all_cell_num > self.max_cell_num:
-                    # print("\n maximum cell number reached")
-                    break
+            self.generation_time.append(avg_generation)
 
-                avg_generation = np.dot(
-                    list(cell_num_per_gen.keys()), list(cell_num_per_gen.values())
-                ) / sum(cell_num_per_gen.values())
+            if avg_generation > self.max_genetion_time:
+                print("\n maximum generation time reached")
+                break
 
-                self.generation_time.append(avg_generation)
-                A = np.array(
-                    [
-                        rec.propensity(self.n[-1], avg_generation)
-                        for rec in self.reactions
-                    ]
-                )
+            A = np.array(
+                [
+                    rec.propensity(self.n[-1], avg_generation)
+                    for rec in self.reactions
+                ]
+            )
 
-                A0 = A.sum()
-                A /= A0
-                t0 = -np.log(np.random.random()) / A0
-                self.t.append(self.t[-1] + t0)
-                react = np.random.choice(self.reactions, p=A)
+            A0 = A.sum()
+            A /= A0
+            t0 = -np.log(np.random.random()) / A0
+            self.t.append(self.t[-1] + t0)
+            react = np.random.choice(self.reactions, p=A)
 
-                self.log.append(react.index)
-                self.n.append(self.n[-1] + react.num_diff)
+            self.log.append(react.index)
+            self.n.append(self.n[-1] + react.num_diff)
 
-                cls.case_to_func(react)()
+            cls.case_to_func(react)()
+        pbar.close()

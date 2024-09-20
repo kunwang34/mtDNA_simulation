@@ -49,7 +49,7 @@ with open(f'{path}/{model}/{simid}/rf_dist.txt', 'a') as f:
             tree_ndna = Phylo.read(f'{path}/{model}/{simid}/dna_mut_{gen}.phy_nj.nwk', 'newick')
         rf_ndna = robinson_foulds(tree_gt, tree_ndna)
         f.write(f"{model}\tnDNA\t0\t{gen}\t0\t{rf_ndna[0]}\t{rf_ndna[1]}\n")
-        for seq in ['', '_seq']:
+        for seq in ['', '_seq1', '_seq2', '_seq3']:
             for cutoff in [0, 0.01]:
                 tree_mt = Phylo.read(f'{path}/{model}/{simid}/mt_allmuts_{gen}_{cutoff}{seq}.phy_nj.nwk', 'newick')
                 rf_mt = robinson_foulds(tree_gt, tree_mt)
