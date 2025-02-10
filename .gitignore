@@ -1,9 +1,8 @@
 data/
-figs_bn/
-figs/
+figs*/
 *.csv
-results/
-results1/
+oe/
+notebooks
 backup
 *.err
 # Byte-compiled / optimized / DLL files

@@ -642,17 +642,15 @@ def sparse_freq(cells, df=True, count=False):
     
     _row, _col, _data = [], [], []
     _data_cnt = []
-    with tqdm(total=len(cell_names)) as pbar:
-        for ind, cell in enumerate(cells):
-            cell_muts = sum([list(i) for i in cells[cell]], [])
-            nmts = len(cells[cell])
-            cnt = Counter(cell_muts)
-            for mut in cnt:
-                _col.append(mut)
-                _row.append(ind)
-                _data.append(cnt[mut]/nmts)
-                _data_cnt.append(cnt[mut])
-            pbar.update(1)
+    for ind, cell in enumerate(cells):
+        cell_muts = sum([list(i) for i in cells[cell]], [])
+        nmts = len(cells[cell])
+        cnt = Counter(cell_muts)
+        for mut in cnt:
+            _col.append(mut)
+            _row.append(ind)
+            _data.append(cnt[mut]/nmts)
+            _data_cnt.append(cnt[mut])
     freq = coo_matrix((_data, (_row, _col))).tocsr()
     mut_id = np.arange(freq.shape[1])
     sel = np.array(freq.sum(axis=0)!=0).flatten()
@@ -675,6 +673,9 @@ def sparse_freq(cells, df=True, count=False):
 
 
 def cell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, target_nmts=500):
+    '''
+    mut_rate: mtDNA mutation per cell
+    '''
     new_mts = []
     nmts = len(mt_muts)
     if nmts < target_nmts*0.8:
@@ -716,9 +717,13 @@ def cell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, tar
     return list(cell1), list(cell2), global_mutid
 
 def ncell_division_with_mt1(mt_muts, global_mutid, mut_rate, mt_copynumber=2, target_nmts=500, p=0.5, s=1):
+    '''
+    mut_rate: mtDNA mutation per site
+    '''
     res = []
     for cell in mt_muts:
-        res1, res2, global_mutid = cell_division_with_mt1(list(cell.values())[0], global_mutid, mut_rate, mt_copynumber=mt_copynumber)
+        nmt = len(list(cell.values())[0])
+        res1, res2, global_mutid = cell_division_with_mt1(list(cell.values())[0], global_mutid, mut_rate*nmt*16569, mt_copynumber=mt_copynumber)
         res.append({f'{list(cell.keys())[0]}0':res1})
         res.append({f'{list(cell.keys())[0]}1':res2})
     n_cells = len(res)
@@ -761,14 +766,22 @@ def get_gt_tree(gt_tree30, mts, save_path = None, collapse=True):
         anc_name = f'{anc_name}>'
         if not anc_name in expansion_clades:
             expansion_clades[anc_name] = Phylo.BaseTree.Clade(branch_length=1, name=anc_name)
-            rec_cells[anc_name] = []
+            rec_cells[anc_name] = set()
         for li in range(len(lin_info)):
             if f'{anc_name}{lin_info[:li+1]}' in rec_cells[anc_name]:
                 continue
             else:
+                pseudo_clade = Phylo.BaseTree.Clade(branch_length=1, name=f'{anc_name}{lin_info}')
+                rec_cells[anc_name].add(f'{anc_name}{lin_info}')
+                for j in range(len(lin_info), li, -1):
+                    pseudo_clade = Phylo.BaseTree.Clade(branch_length=1, name=f'{anc_name}{lin_info[:j]}', clades=[pseudo_clade])
+                    rec_cells[anc_name].add(f'{anc_name}{lin_info[:j]}')
                 anc_t = expansion_clades[anc_name].find_any(f'{anc_name}{lin_info[:li]}')
-                anc_t.clades.append(Phylo.BaseTree.Clade(branch_length=1, name=f'{anc_name}{lin_info[:li+1]}'))
-                rec_cells[anc_name].append(f'{anc_name}{lin_info[:li+1]}')
+                anc_t.clades.append(pseudo_clade)
+                break
+                # anc_t = expansion_clades[anc_name].find_any(f'{anc_name}{lin_info[:li]}')
+                # anc_t.clades.append(Phylo.BaseTree.Clade(branch_length=1, name=f'{anc_name}{lin_info[:li+1]}'))
+                # rec_cells[anc_name].append(f'{anc_name}{lin_info[:li+1]}')
 
     for i in expansion_clades:
         tree100_gt.find_any(i).clades = [expansion_clades[i]]
@@ -782,8 +795,8 @@ def get_gt_tree(gt_tree30, mts, save_path = None, collapse=True):
         Phylo.write(tree100_gt, save_path, format='newick')
     return tree100_gt
 
-def sequence_sim(f, coverage, n=2.5, return_readcount=False, min_reads=1):
-    depth = nbinom(p=n/(n+coverage), n=n).rvs(size=f.shape)
+def sequence_sim(f, dep_mean, n=2.5, return_readcount=False, min_reads=1):
+    depth = nbinom(p=n/(n+dep_mean), n=n).rvs(size=f.shape)
     read_cnt = binom(n=depth, p=f).rvs()
     if hasattr(min_reads, '__iter__'):
         res = []
